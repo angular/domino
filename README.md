@@ -1,5 +1,6 @@
-DO NOT USE THIS REPO! It's only intended use is to support Angular's server side rendering in platform-server.
-We will only accept bugfixes that affect SSR within Angular.
+This repository is only intended use is to support Angular's server side rendering in platform-server.
+We will only accept bugfixes that affect SSR within Angular. See the [contributing documentation](http://github.com/angular/domino/blobs/main/CONTRIBUTING.md) for
+more information.
 
 # Angular Server-side DOM implementation based on Mozilla's dom.js
 
