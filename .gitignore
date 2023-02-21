@@ -1,5 +1,33 @@
-.DS_Store
+.DS_STORE
 node_modules
+.history/
+
+# Include when developing application packages.
+.c9
+.idea/
+.devcontainer/*
+!.devcontainer/recommended-devcontainer.json
+!.devcontainer/recommended-Dockerfile
+.settings/
+.vscode/launch.json
+.vscode/settings.json
+*.swo
+.vimrc
+.nvimrc
+
+# Don't check in secret files
+*secret.js
+
+# Ignore npm/yarn debug log
 npm-debug.log
-v8.log
-.idea
+yarn-error.log
+
+# Yarn v2+. Zero installs disabled since we are not using PnP.
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+!.yarn/yarn.js
