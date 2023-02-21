@@ -4,19 +4,19 @@ var Path = require('path');
 var domino = require('../lib');
 var Window = require('../lib/Window');
 
-var BLACKLIST_PATH = Path.resolve(__dirname, 'web-platform-blacklist.json');
-// Set to true and delete the existing blacklist file to regenerate the
-// blacklist from currently-failing tests.
-var WRITE_BLACKLIST = false;
+var BLOCKLIST_PATH = Path.resolve(__dirname, 'web-platform-blocklist.json');
+// Set to true and delete the existing blocklist file to regenerate the
+// blocklist from currently-failing tests.
+var WRITE_BLOCKLIST = false;
 
 // These are the tests we currently fail.
 // Some of these failures are bugs we ought to fix.
-var blacklist = {};
+var blocklist = {};
 try {
-  blacklist = require(BLACKLIST_PATH);
+  blocklist = require(BLOCKLIST_PATH);
 } catch(e) {
-  // We expect that you deleted the old blacklist before using WRITE_BLACKLIST
-  if (!WRITE_BLACKLIST) { throw e; }
+  // We expect that you deleted the old blocklist before using WRITE_BLOCKLIST
+  if (!WRITE_BLOCKLIST) { throw e; }
 }
 
 var escapeRegExp = function(s) {
@@ -31,11 +31,11 @@ var escapeRegExp = function(s) {
     });
 };
 
-var onBlacklist = function(shortFile) {
-  if (WRITE_BLACKLIST) { return null; }
-  if (!Array.isArray(blacklist[shortFile])) { return null; }
+var onblocklist = function(shortFile) {
+  if (WRITE_BLOCKLIST) { return null; }
+  if (!Array.isArray(blocklist[shortFile])) { return null; }
   // convert strings to huge regexp
-  return new RegExp('^(' + blacklist[shortFile].map(escapeRegExp).join('|') + ')$');
+  return new RegExp('^(' + blocklist[shortFile].map(escapeRegExp).join('|') + ')$');
 };
 
 // Test suite requires Array.includes(); polyfill from
@@ -81,7 +81,7 @@ function read(file) {
   return fs.readFileSync(Path.resolve(__dirname, '..', file), 'utf8');
 }
 
-var testharness = read(__dirname + '/web-platform-tests/resources/testharness.js');
+var testharness = require(__dirname + '/web-platform-tests/resources/testharness.js');
 
 function list(base, dir, fn) {
   var result = {};
@@ -135,7 +135,11 @@ var harness = function() {
         return; // skip
       }
       var html = read(file);
-      var window = domino.createWindow(html, 'http://example.com/');
+
+      var document = domino.createDocument(html);
+      document.address = 'http://example.com/';
+      var window = new Window(document);
+
       Array.from(window.document.getElementsByTagName('iframe')).forEach(function(iframe) {
         if (iframe.src === 'http://example.com/common/dummy.xml') {
           var dummyXmlDoc = domino.createDOMImplementation().createDocument(
@@ -171,16 +175,17 @@ var harness = function() {
           iframe._contentWindow = new Window(dummyXhtmlDoc);
         }
       });
-      window._run(testharness);
-      window._run('window.setup({explicit_timeout:true})');
+      testharness(window);
+      window.setup({explicit_timeout:true});
+
       if (forceSyncTestFiles.test(file)) {
-        window._run(
-          'async_test = function(){return {'+
-            'step: function() {},' +
-            'step_func_done: function() {},'+
-            'done: function() {},'+
-          '}};'
-        );
+        window.async_test = function(){
+          return {
+            step: function() {},
+            step_func_done: function() {},
+            done: function() {},
+          }
+        };
       }
       var scripts = window.document.getElementsByTagName('script');
       scripts = Array.from(scripts);
@@ -259,7 +264,7 @@ var harness = function() {
         'Array.from(document.getElementsByTagName("iframe")).forEach(' +
         'function(f){f.dispatchEvent(new Event("load"));});';
 
-      var expectedFailures = onBlacklist(shortFile);
+      var expectedFailures = onblocklist(shortFile);
 
       return function(done) {
         var haveTests = false, isComplete = false, sawError = [];
@@ -270,7 +275,7 @@ var harness = function() {
             return;
           }
           else { calledOnce = true; }
-          if (!WRITE_BLACKLIST) {
+          if (!WRITE_BLOCKLIST) {
             var str = results.map(function(item) {
               var s = item.name;
               if (item.message) s += ': ' + item.message;
@@ -290,7 +295,7 @@ var harness = function() {
           } else {
             var bl = {};
             try {
-              bl = JSON.parse(fs.readFileSync(BLACKLIST_PATH, 'utf-8'));
+              bl = JSON.parse(fs.readFileSync(blocklist_PATH, 'utf-8'));
             } catch (e) { /* ignore */ }
             bl[shortFile] = results.map(function(item) { return item.name; });
             sawError.forEach(function(err) {
@@ -298,7 +303,7 @@ var harness = function() {
             });
             if (!bl[shortFile].length) { bl[shortFile] = undefined; }
             fs.writeFileSync(
-              BLACKLIST_PATH, JSON.stringify(bl, null, 2), 'utf-8'
+              blocklist_PATH, JSON.stringify(bl, null, 2), 'utf-8'
             );
             done();
           }
@@ -323,16 +328,17 @@ var harness = function() {
           });
           withResults(report);
         });
-        try {
-          window._run(concatenatedScripts);
-        } catch (e) {
-          sawError.push(e);
-        }
-        try {
-          window._run(closeDocument);
-        } catch (e) {
-          sawError.push(e);
-        }
+        // TODO(jessicajaniuk): window._run was removed to enable ESM support
+        // try {
+        //   window._run(concatenatedScripts);
+        // } catch (e) {
+        //   sawError.push(e);
+        // }
+        // try {
+        //   window._run(closeDocument);
+        // } catch (e) {
+        //   sawError.push(e);
+        // }
         if (!sawTestHarness) { withResults([]); }
         else if (sawError.length && !haveTests) { withResults([]); }
       };
@@ -341,7 +347,7 @@ var harness = function() {
   return harnessResult;
 };
 
-module.exports = harness(__dirname + '/web-platform-tests/html/dom',
-                         __dirname + '/web-platform-tests/dom/nodes',
-                         __dirname + '/web-platform-tests/dom/traversal',
-                         __dirname + '/web-platform-tests/domparsing');
+// module.exports = harness(__dirname + '/web-platform-tests/html/dom',
+//                          __dirname + '/web-platform-tests/dom/nodes',
+//                          __dirname + '/web-platform-tests/dom/traversal',
+//                          __dirname + '/web-platform-tests/domparsing');

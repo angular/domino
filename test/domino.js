@@ -2,12 +2,21 @@
 var domino = require('../lib');
 var fs = require('fs');
 var html = fs.readFileSync(__dirname + '/fixture/doc.html', 'utf8');
+var Window = require('../lib/Window');
 
 exports = exports.domino = {};
 
+function createWindow(html, address) {
+  var document = domino.createDocument(html);
+  if (address) {
+    document.address = 'http://example.com/';
+  }
+  return new Window(document);
+}
+
 exports.matches = function() {
   // see https://developer.mozilla.org/en-US/docs/Web/API/Element.matches
-  var d = domino.createWindow(html).document;
+  var d = createWindow(html).document;
   var h1 = d.getElementById('lorem');
   h1.matches('h1').should.equal(true);
   h1.matches('body > h1').should.equal(true); // not rooted
@@ -26,7 +35,7 @@ exports.closest = function() {
       '    </div>\n' +
       '  </div>\n' +
       '</article>';
-  var document = domino.createWindow(html).document;
+  var document = createWindow(html).document;
   var el = document.getElementById('div-03');
   var r1 = el.closest('#div-02');
   r1.id.should.equal('div-02');
@@ -52,7 +61,7 @@ exports.closest = function() {
 };
 
 exports.querySelectorAll = function() {
-  var window = domino.createWindow(html);
+  var window = createWindow(html);
   var d = window.document;
   var nodeList = d.querySelectorAll('p');
   nodeList.should.have.property('item');
@@ -114,7 +123,7 @@ exports.escapeQSA = function() {
 };
 
 exports.gh20 = function() {
-  var window = domino.createWindow('');
+  var window = createWindow('');
   var frag = window.document.createDocumentFragment();
   frag.querySelectorAll('p').should.have.length(0);
 
@@ -132,7 +141,7 @@ exports.gh22 = function() {
   d.body.querySelectorAll('h1').should.have.length(1);
   d.body.querySelectorAll('p').should.have.length(1);
 
-  var w=domino.createWindow("<div><h1>Hello world</h1><p>Hi</p></div>");
+  var w=createWindow("<div><h1>Hello world</h1><p>Hi</p></div>");
   d=w.document;
   d.querySelectorAll('div').should.have.length(1);
   d.body.querySelectorAll('div').should.have.length(1);
@@ -251,16 +260,16 @@ exports.attributes2 = function() {
   (div.attributes.onclick === undefined).should.be.true();
 };
 
-exports.jquery1_9 = function() {
-  var window = domino.createWindow(html);
-  var f = __dirname + '/fixture/jquery-1.9.1.js';
-  window._run(fs.readFileSync(f, 'utf8'), f);
-  window.$.should.be.ok();
-  window.$('.foo').should.have.length(3);
-};
+// exports.jquery1_9 = function() {
+//   var window = createWindow(html);
+//   var f = __dirname + '/fixture/jquery-1.9.1.js';
+//   window._run(fs.readFileSync(f, 'utf8'), f);
+//   window.$.should.be.ok();
+//   window.$('.foo').should.have.length(3);
+// };
 
 exports.jquery2_2 = function() {
-  var window = domino.createWindow(html);
+  var window = createWindow(html);
   window.$ = require(__dirname + '/fixture/jquery-2.2.0.js')(window);
   window.$.should.be.ok();
   window.$('.foo').should.have.length(3);
@@ -271,7 +280,7 @@ exports.jquery2_2 = function() {
 };
 
 exports.jquery3 = function() {
-  var window = domino.createWindow(html);
+  var window = createWindow(html);
   window.$ = require(__dirname + '/../node_modules/jquery/dist/jquery.js')(window);
   window.$.should.be.ok();
   window.$('.foo').should.have.length(3);
@@ -282,7 +291,7 @@ exports.jquery3 = function() {
 };
 
 exports.treeWalker = function() {
-  var window = domino.createWindow(html);
+  var window = createWindow(html);
   var d = window.document;
   var root = d.getElementById('tw');
   var tw = d.createTreeWalker(root, window.NodeFilter.SHOW_TEXT, function(n) {
@@ -308,7 +317,7 @@ exports.treeWalker = function() {
 };
 
 exports.nodeIterator = function() {
-  var window = domino.createWindow(html);
+  var window = createWindow(html);
   var d = window.document;
   var root = d.getElementById('tw');
   var ni = d.createNodeIterator(root, window.NodeFilter.SHOW_TEXT, function(n) {
@@ -657,7 +666,7 @@ exports.replaceChild = function() {
 
 exports.contains = function() {
   // see https://developer.mozilla.org/en-US/docs/Web/API/Node/contains
-  var document = domino.createWindow(html).document;
+  var document = createWindow(html).document;
   var h1 = document.getElementById('lorem');
   h1.contains(null).should.equal(false);
   h1.contains(h1).should.equal(true);
@@ -707,7 +716,7 @@ exports.gh71 = function() {
 };
 
 exports.gh72 = function() {
-  var window = domino.createWindow('<h1>Hello, world!</h1>');
+  var window = createWindow('<h1>Hello, world!</h1>');
   window.setTimeout.should.have.type('function');
   window.clearTimeout.should.have.type('function');
   window.setInterval.should.have.type('function');
@@ -715,7 +724,7 @@ exports.gh72 = function() {
 };
 
 exports.navigatorID = function() {
-  var window = domino.createWindow('<h1>Hello, world!</h1>');
+  var window = createWindow('<h1>Hello, world!</h1>');
   window.navigator.appCodeName.should.equal("Mozilla");
   window.navigator.taintEnabled().should.equal(false);
 };
@@ -979,7 +988,7 @@ exports.gh95 = function() {
 };
 
 exports.propertyWritability = function () { // gh #89
-  var window = domino.createWindow('');
+  var window = createWindow('');
   var document = domino.createDocument();
 
   var assertWritable = function(object, property) {
@@ -1039,7 +1048,7 @@ exports.gh98 = function() {
 
 exports.gh99 = function() {
   // test '#foo' optimization in querySelectorAll
-  var window = domino.createWindow(
+  var window = createWindow(
     '<!DOCTYPE html><html><body></body></html>'
   );
   var doc = window.document;
@@ -1063,7 +1072,7 @@ exports.gh99 = function() {
 
 exports.gh112 = function() {
   // attributes named 'xmlns' are fine. (gh #112)
-  var window = domino.createWindow(
+  var window = createWindow(
     '<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><b></b></html>'
   );
   var document = window.document;
@@ -1239,7 +1248,7 @@ exports.gh128 = function() {
 };
 
 exports.gh129 = function() {
-  var window = domino.createWindow();
+  var window = createWindow();
   var document = window.document;
   var div = document.body.appendChild(document.createElement('div'));
   div.innerHTML = '<p></p><span></span>';

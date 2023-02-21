@@ -129,8 +129,6 @@
   `Element#removeAttribute`/`Element#removeAttributeNS`. (#90, @clint-tseng)
 * Fix deep `Document#importNode`. (#93)
 * Ensure that `Node#parentNode` is `null` (not `undefined`) when removed.
-* Add an optional second argument to `domino.createWindow` to specify
-  the document's address.
 * Tweak JavaScript properties which are DOM reflections of element
   attributes in order to more closely match the DOM 4 spec.
 * Implement `ChildNode#before()`, `ChildNode#after()`, and

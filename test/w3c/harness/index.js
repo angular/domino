@@ -5,6 +5,7 @@ var util = require('util');
 var Path = require('path');
 var domino = require('../../../lib');
 var impl = domino.createDOMImplementation();
+var Window = require('../../../lib/Window');
 
 var globals = {
   assertEquals: function(message, expected, actual) {
@@ -69,7 +70,10 @@ module.exports = function(path) {
           var doc = Path.resolve(__dirname, '..', path, 'files', href) + '.html';
           var html = fs.readFileSync(doc, 'utf8');
           var url = 'http://example.com/'+Path.join(path,'files',href)+'.html';
-          var win = domino.createWindow(html, url);
+
+          var document = domino.createDocument(html);
+          document.address = url;
+          var win = new Window(document);
           return win.document;
         }
       };
