@@ -10,8 +10,7 @@
     "url": "https://github.com/angular/domino.git"
   },
   "scripts": {
-    "test": "mocha",
-    "test-spec": "mocha -R spec"
+    "test": "mocha"
   },
   "types": "lib/index.d.ts",
   "devDependencies": {

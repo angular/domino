@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+     types: [opened, synchronize]
+
+permissions: {}
+
+jobs:
+  unit-tests:
+    if: github.repository == 'angular/domino'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # tag=v3.3.0
+        with:
+          # Setting persist-credentials instructs actions/checkout not to persist the credentials
+          # in configuration or environment.  Since we don't rely on the credentials used for
+          # checkout this is an improved security measure.
+          persist-credentials: false
+          submodules: true
+      - uses: actions/cache@v3
+        with:
+          path: /.yarn/cache
+          key: v1-${{hashFiles('yarn.lock')}}
+      - run: yarn install --immutable
+      - run: yarn mocha -R spec
