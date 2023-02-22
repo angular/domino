@@ -1,0 +1,43 @@
+name: Publish Builds Repo
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  publish-builds:
+    if: github.repository == 'angular/domino'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # tag=v3.3.0
+        with:
+          submodules: true
+      - name: Copy npm package contents to builds repo submodule
+        run: node ./tools/copy-package-to-builds-repo.js
+      - name: Check if builds-repo package is changed
+        id: builds-repo-has-changes
+        working-directory: builds
+        run: |
+          if [ `git status --porcelain=1 | wc -l` -ne 0 ]; then
+            echo "HAS_CHANGES=1" >> $GITHUB_OUTPUT;
+          else
+            echo "HAS_CHANGES=0" >> $GITHUB_OUTPUT;
+          fi
+      - name: No changes affecting builds-repo
+        if: ${{ steps.builds-repo-has-changes.outputs.HAS_CHANGES == 0 }}
+        working-directory: builds
+        run: |
+          echo "No push to the builds repo is needed as no files have changed"
+      - name: Update builds repo submodule
+        if: ${{ steps.builds-repo-has-changes.outputs.HAS_CHANGES == 1 }}
+        working-directory: builds
+        run: |
+          git config user.email "${{github.event.pusher.email}}"
+          git config user.name "${{github.event.pusher.name}}"
+          git add -A;
+          git commit -m "release: create npm package for ${{github.sha}}"
+          git push origin main;
+
