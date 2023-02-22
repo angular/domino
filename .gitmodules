@@ -4,3 +4,6 @@
 [submodule "test/web-platform-tests"]
 	path = test/web-platform-tests
 	url = https://github.com/w3c/web-platform-tests.git
+[submodule "builds"]
+	path = builds
+	url = https://github.com/angular/domino-builds.git
