@@ -1200,6 +1200,25 @@ exports.gh119 = function() {
   div.outerHTML.should.equal('<div style="flex-basis: 0px; flex-grow: 1; flex-shrink: 1; flex-direction: column; flex-wrap: wrap;"></div>');
 };
 
+exports.setPropertyClipBox = function() {
+  var document = domino.createDocument('<div></div>');
+  var div = document.querySelector('div');
+  div.style['clip-path'] = 'margin-box';
+  div.outerHTML.should.equal('<div style="clip-path: margin-box;"></div>');
+};
+
+exports.setPropertyNull = function() {
+  var document = domino.createDocument('<div style="color:red;"></div>');
+  var div = document.querySelector('div');
+  div.style.setProperty('--bg-color', null);
+  div.outerHTML.should.equal('<div style="color:red;"></div>');
+
+  var document = domino.createDocument('<div style="color:green;"></div>');
+  var div = document.querySelector('div');
+  div.style.color = null;
+  div.outerHTML.should.equal('<div style=""></div>');
+};
+
 exports.gh121 = function() {
   var document = domino.createDocument('<div></div>');
   var div = document.querySelector('div');
