@@ -1461,3 +1461,10 @@ exports.incrementalHTMLParser2 = function() {
     '<html><head></head><body><p>hello<b>foo&amp;</b></p></body></html>'
   );
 };
+
+exports.quotedUnitValues = function() {
+  var document = domino.createDocument('<div></div>');
+  var div = document.querySelector('div');
+  div.style.width = '"0px"';
+  div.outerHTML.should.equal('<div></div>');
+};
