@@ -706,6 +706,16 @@ exports.gh70 = function() {
   classAttr.value.should.equal('textContent');
   classAttr.nodeValue.should.equal('textContent');
   classAttr.textContent.should.equal('textContent');
+  classAttr.innerText.should.equal('textContent');
+};
+
+exports.innerText = function() {
+  var document = domino.createDocument('<div>Hello <h1>world!</h1></div>');
+  var div = document.querySelector('div');
+  div.innerText.should.equal('Hello world!'); // getter
+  div.innerText = 'Hi'; // setter
+  div.textContent.should.equal('Hi');
+  div.innerText.should.equal('Hi');
 };
 
 exports.gh71 = function() {
