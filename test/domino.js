@@ -1478,3 +1478,10 @@ exports.shouldNotEmptyStyle = function() {
   div.style.flex = '    ';
   div.outerHTML.should.equal('<div></div>');
 };
+
+exports.supportModernStyle = function() {
+  var document = domino.createDocument('<h1 style="color:red !important">Hello world</h1>');
+  var h1 = document.querySelector('h1');
+  h1.style.inset = '0px';
+  h1.outerHTML.should.equal('<h1 style="color: red !important; inset: 0px;">Hello world</h1>');
+};
