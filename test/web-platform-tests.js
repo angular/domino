@@ -3,7 +3,7 @@ var fs = require('fs');
 var Path = require('path');
 var domino = require('../lib');
 var Window = require('../lib/Window');
-return;
+
 var BLOCKLIST_PATH = Path.resolve(__dirname, 'web-platform-blocklist.json');
 // Set to true and delete the existing blocklist file to regenerate the
 // blocklist from currently-failing tests.
