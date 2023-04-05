@@ -1485,3 +1485,10 @@ exports.supportModernStyle = function() {
   h1.style.inset = '0px';
   h1.outerHTML.should.equal('<h1 style="color: red !important; inset: 0px;">Hello world</h1>');
 };
+
+exports.supportsNonceAttribute = function() {
+  var document = domino.createDocument('<style>* {color: red}</style>');
+  var h1 = document.querySelector('style');
+  h1.nonce = 'randomhaash';
+  h1.outerHTML.should.equal('<style nonce="randomhaash">* {color: red}</style>');
+};
