@@ -4,7 +4,7 @@ more information.
 
 # Angular Server-side DOM implementation based on Mozilla's dom.js
 
-This is a fork of (domino)[https://github.com/fgnass/domino].
+This is a fork of [domino](https://github.com/fgnass/domino).
 
 As the name might suggest, domino's goal is to provide a <b>DOM in No</b>de.
 
