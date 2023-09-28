@@ -8319,7 +8319,7 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><div bar=\"ZZ>YY\"></div></body></html>",
+        "html": "<html><head></head><body><div bar=\"ZZ&gt;YY\"></div></body></html>",
         "noQuirksBodyHtml": "<div bar=\"ZZ>YY\"></div>"
       }
     },
@@ -8715,7 +8715,7 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><div bar=\"ZZ> YY\"></div></body></html>",
+        "html": "<html><head></head><body><div bar=\"ZZ&gt; YY\"></div></body></html>",
         "noQuirksBodyHtml": "<div bar=\"ZZ> YY\"></div>"
       }
     },
@@ -8758,7 +8758,7 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><div bar=\"ZZ>\"></div></body></html>",
+        "html": "<html><head></head><body><div bar=\"ZZ&gt;\"></div></body></html>",
         "noQuirksBodyHtml": "<div bar=\"ZZ>\"></div>"
       }
     },
@@ -8801,7 +8801,7 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><div bar=\"ZZ>\"></div></body></html>",
+        "html": "<html><head></head><body><div bar=\"ZZ&gt;\"></div></body></html>",
         "noQuirksBodyHtml": "<div bar=\"ZZ>\"></div>"
       }
     },
@@ -8844,7 +8844,7 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><div bar=\"ZZ>\"></div></body></html>",
+        "html": "<html><head></head><body><div bar=\"ZZ&gt;\"></div></body></html>",
         "noQuirksBodyHtml": "<div bar=\"ZZ>\"></div>"
       }
     },

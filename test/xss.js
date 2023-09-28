@@ -83,3 +83,14 @@ exports.fp170_37 = function() {
     '<p><svg><style>*{font-family:\'&lt;/style&gt;&lt;img/src=x\tonerror=xss()//\'}</style></svg></p>'
   );
 };
+
+exports.escapeAngleBracketsInDivAttr = function() {
+  var document = domino.createDocument(
+    `<div>You don't have JS! Click<a href="#" title="Search for </div><script>alert(1)</script> without JS">here</a> to go to the no-js website.</div>`
+  );
+  // Ensure that HTML entities are properly encoded inside <style>
+  document.body.innerHTML.should.equal(
+    `<div>You don't have JS! Click<a href="#" title="Search for &lt;/div&gt;&lt;script&gt;alert(1)&lt;/script&gt; without JS">here</a> to go to the no-js website.</div>`
+  );
+};
+
