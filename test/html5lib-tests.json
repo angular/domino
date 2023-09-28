@@ -4131,8 +4131,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script></script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script></script></script>"
+        "html": "<html><head><script type=\"data\"><!--<script>&lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>&lt;/script></script>"
       }
     },
     {
@@ -4181,8 +4181,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script>�</script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>�</script></script>"
+        "html": "<html><head><script type=\"data\"><!--<script>�&lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>�&lt;/script></script>"
       }
     },
     {
@@ -4231,8 +4231,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script>-�</script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>-�</script></script>"
+        "html": "<html><head><script type=\"data\"><!--<script>-�&lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>-�&lt;/script></script>"
       }
     },
     {
@@ -4281,8 +4281,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script>--�</script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>--�</script></script>"
+        "html": "<html><head><script type=\"data\"><!--<script>--�&lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>--�&lt;/script></script>"
       }
     },
     {
@@ -4330,8 +4330,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script>---</script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>---</script></script>"
+        "html": "<html><head><script type=\"data\"><!--<script>---&lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script>---&lt;/script></script>"
       }
     },
     {
@@ -4379,8 +4379,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script></scrip></SCRIPT></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script></scrip></SCRIPT></script>"
+        "html": "<html><head><script type=\"data\"><!--<script></scrip>&lt;/SCRIPT></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script></scrip>&lt;/SCRIPT></script>"
       }
     },
     {
@@ -4428,8 +4428,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script></scrip </SCRIPT></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script></scrip </SCRIPT></script>"
+        "html": "<html><head><script type=\"data\"><!--<script></scrip &lt;/SCRIPT></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script></scrip &lt;/SCRIPT></script>"
       }
     },
     {
@@ -4477,8 +4477,8 @@
             ]
           }
         ],
-        "html": "<html><head><script type=\"data\"><!--<script></scrip/</SCRIPT></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"data\"><!--<script></scrip/</SCRIPT></script>"
+        "html": "<html><head><script type=\"data\"><!--<script></scrip/&lt;/SCRIPT></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"data\"><!--<script></scrip/&lt;/SCRIPT></script>"
       }
     },
     {
@@ -17725,8 +17725,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\"></scriptx>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\"></scriptx>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">&lt;/scriptx>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">&lt;/scriptx>BAR</script>"
       }
     },
     {
@@ -18263,8 +18263,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt>'</script>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt>'</script>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt>'&lt;/script>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt>'&lt;/script>BAR</script>"
       }
     },
     {
@@ -18317,8 +18317,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> -'</script>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> -'</script>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> -'&lt;/script>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> -'&lt;/script>BAR</script>"
       }
     },
     {
@@ -18371,8 +18371,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> --'</script>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> --'</script>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> --'&lt;/script>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> --'&lt;/script>BAR</script>"
       }
     },
     {
@@ -18474,8 +18474,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> --!>'</script>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> --!>'</script>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> --!>'&lt;/script>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> --!>'&lt;/script>BAR</script>"
       }
     },
     {
@@ -18528,8 +18528,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> -- >'</script>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> -- >'</script>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt> -- >'&lt;/script>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt> -- >'&lt;/script>BAR</script>"
       }
     },
     {
@@ -18582,8 +18582,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt '</script>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt '</script>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt '&lt;/script>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt '&lt;/script>BAR</script>"
       }
     },
     {
@@ -18636,8 +18636,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt/'</script>BAR</script></body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt/'</script>BAR</script>"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt/'&lt;/script>BAR</script></body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt/'&lt;/script>BAR</script>"
       }
     },
     {
@@ -18746,8 +18746,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt/'</script>BAR</script>QUX</body></html>",
-        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt/'</script>BAR</script>QUX"
+        "html": "<html><head></head><body>FOO<script type=\"text/plain\">'<!-- <sCrIpt/'&lt;/script>BAR</script>QUX</body></html>",
+        "noQuirksBodyHtml": "FOO<script type=\"text/plain\">'<!-- <sCrIpt/'&lt;/script>BAR</script>QUX"
       }
     },
     {
@@ -18795,8 +18795,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body>FOO<script><!--<script>-></script>--></script>QUX</body></html>",
-        "noQuirksBodyHtml": "FOO<script><!--<script>-></script>--></script>QUX"
+        "html": "<html><head></head><body>FOO<script><!--<script>->&lt;/script>--></script>QUX</body></html>",
+        "noQuirksBodyHtml": "FOO<script><!--<script>->&lt;/script>--></script>QUX"
       }
     }
   ],
@@ -39816,8 +39816,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script></SCRIPT</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script></SCRIPT</script>"
+        "html": "<!DOCTYPE html><html><head><script>&lt;/SCRIPT</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script>&lt;/SCRIPT</script>"
       }
     },
     {
@@ -40139,8 +40139,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script></script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script></script</script>"
+        "html": "<!DOCTYPE html><html><head><script>&lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script>&lt;/script</script>"
       }
     },
     {
@@ -40657,8 +40657,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--</script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--</script</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--&lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--&lt;/script</script>"
       }
     },
     {
@@ -41089,8 +41089,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script</script>"
       }
     },
     {
@@ -41137,8 +41137,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </scripta</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </scripta</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/scripta</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/scripta</script>"
       }
     },
     {
@@ -41185,8 +41185,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -41233,8 +41233,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script></script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script></script>"
       }
     },
     {
@@ -41281,8 +41281,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script/</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script/</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script/</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script/</script>"
       }
     },
     {
@@ -41329,8 +41329,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script <</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script <</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script <</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script <</script>"
       }
     },
     {
@@ -41377,8 +41377,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script <a</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script <a</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script <a</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script <a</script>"
       }
     },
     {
@@ -41425,8 +41425,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script </</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script </</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </</script>"
       }
     },
     {
@@ -41473,8 +41473,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script </script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script &lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script &lt;/script</script>"
       }
     },
     {
@@ -41521,8 +41521,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -41569,8 +41569,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -41614,8 +41614,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -42090,8 +42090,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script --></script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script --></script</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script -->&lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script -->&lt;/script</script>"
       }
     },
     {
@@ -42366,8 +42366,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script></script><script></script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script></script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script>&lt;/script><script>&lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script></script>"
       }
     },
     {
@@ -42411,8 +42411,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script></script><script></script>--><!--</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>--><!--</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script>&lt;/script><script>&lt;/script>--><!--</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>--><!--</script>"
       }
     },
     {
@@ -42456,8 +42456,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script></script><script></script>-- ></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>-- ></script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script>&lt;/script><script>&lt;/script>-- ></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>-- ></script>"
       }
     },
     {
@@ -42501,8 +42501,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script></script><script></script>- -></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>- -></script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script>&lt;/script><script>&lt;/script>- -></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>- -></script>"
       }
     },
     {
@@ -42546,8 +42546,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script></script><script></script>- - ></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>- - ></script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script>&lt;/script><script>&lt;/script>- - ></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>- - ></script>"
       }
     },
     {
@@ -42591,8 +42591,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script></script><script></script>-></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>-></script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script>&lt;/script><script>&lt;/script>-></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>-></script>"
       }
     },
     {
@@ -42639,8 +42639,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script>--!></script>X</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script>--!></script>X</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script>--!>&lt;/script>X</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>--!>&lt;/script>X</script>"
       }
     },
     {
@@ -42741,8 +42741,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script><!--<script></scr'+'ipt></script>X</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></scr'+'ipt></script>X</script>"
+        "html": "<!DOCTYPE html><html><head><script><!--<script></scr'+'ipt>&lt;/script>X</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script></scr'+'ipt>&lt;/script>X</script>"
       }
     },
     {
@@ -44537,8 +44537,8 @@
             ]
           }
         ],
-        "html": "<html><head><script></SCRIPT</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script></SCRIPT</script>"
+        "html": "<html><head><script>&lt;/SCRIPT</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script>&lt;/SCRIPT</script>"
       }
     },
     {
@@ -44839,8 +44839,8 @@
             ]
           }
         ],
-        "html": "<html><head><script></script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script></script</script>"
+        "html": "<html><head><script>&lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script>&lt;/script</script>"
       }
     },
     {
@@ -45324,8 +45324,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--</script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--</script</script>"
+        "html": "<html><head><script><!--&lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--&lt;/script</script>"
       }
     },
     {
@@ -45729,8 +45729,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script</script>"
+        "html": "<html><head><script><!--<script &lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script</script>"
       }
     },
     {
@@ -45774,8 +45774,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </scripta</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </scripta</script>"
+        "html": "<html><head><script><!--<script &lt;/scripta</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/scripta</script>"
       }
     },
     {
@@ -45819,8 +45819,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -45864,8 +45864,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script></script>"
+        "html": "<html><head><script><!--<script &lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script></script>"
       }
     },
     {
@@ -45909,8 +45909,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script/</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script/</script>"
+        "html": "<html><head><script><!--<script &lt;/script/</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script/</script>"
       }
     },
     {
@@ -45954,8 +45954,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script <</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script <</script>"
+        "html": "<html><head><script><!--<script &lt;/script <</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script <</script>"
       }
     },
     {
@@ -45999,8 +45999,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script <a</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script <a</script>"
+        "html": "<html><head><script><!--<script &lt;/script <a</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script <a</script>"
       }
     },
     {
@@ -46044,8 +46044,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script </</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </</script>"
+        "html": "<html><head><script><!--<script &lt;/script </</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </</script>"
       }
     },
     {
@@ -46089,8 +46089,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script </script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script</script>"
+        "html": "<html><head><script><!--<script &lt;/script &lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script &lt;/script</script>"
       }
     },
     {
@@ -46134,8 +46134,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -46179,8 +46179,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -46222,8 +46222,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script </script </script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script </script </script>"
+        "html": "<html><head><script><!--<script &lt;/script </script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script &lt;/script </script>"
       }
     },
     {
@@ -46578,8 +46578,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script --></script</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script --></script</script>"
+        "html": "<html><head><script><!--<script -->&lt;/script</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script -->&lt;/script</script>"
       }
     },
     {
@@ -46840,8 +46840,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script></script><script></script></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script></script>"
+        "html": "<html><head><script><!--<script>&lt;/script><script>&lt;/script></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script></script>"
       }
     },
     {
@@ -46883,8 +46883,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script></script><script></script>--><!--</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>--><!--</script>"
+        "html": "<html><head><script><!--<script>&lt;/script><script>&lt;/script>--><!--</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>--><!--</script>"
       }
     },
     {
@@ -46926,8 +46926,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script></script><script></script>-- ></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>-- ></script>"
+        "html": "<html><head><script><!--<script>&lt;/script><script>&lt;/script>-- ></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>-- ></script>"
       }
     },
     {
@@ -46969,8 +46969,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script></script><script></script>- -></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>- -></script>"
+        "html": "<html><head><script><!--<script>&lt;/script><script>&lt;/script>- -></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>- -></script>"
       }
     },
     {
@@ -47012,8 +47012,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script></script><script></script>- - ></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>- - ></script>"
+        "html": "<html><head><script><!--<script>&lt;/script><script>&lt;/script>- - ></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>- - ></script>"
       }
     },
     {
@@ -47055,8 +47055,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script></script><script></script>-></script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></script><script></script>-></script>"
+        "html": "<html><head><script><!--<script>&lt;/script><script>&lt;/script>-></script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>&lt;/script><script>&lt;/script>-></script>"
       }
     },
     {
@@ -47100,8 +47100,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script>--!></script>X</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script>--!></script>X</script>"
+        "html": "<html><head><script><!--<script>--!>&lt;/script>X</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script>--!>&lt;/script>X</script>"
       }
     },
     {
@@ -47196,8 +47196,8 @@
             ]
           }
         ],
-        "html": "<html><head><script><!--<script></scr'+'ipt></script>X</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script><!--<script></scr'+'ipt></script>X</script>"
+        "html": "<html><head><script><!--<script></scr'+'ipt>&lt;/script>X</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script><!--<script></scr'+'ipt>&lt;/script>X</script>"
       }
     },
     {
@@ -49299,8 +49299,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><plaintext></plaintext></plaintext></body></html>",
-        "noQuirksBodyHtml": "<plaintext></plaintext></plaintext>"
+        "html": "<!DOCTYPE html><html><head></head><body><plaintext>&lt;/plaintext></plaintext></body></html>",
+        "noQuirksBodyHtml": "<plaintext>&lt;/plaintext></plaintext>"
       }
     },
     {
@@ -49363,8 +49363,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><plaintext></plaintext></plaintext><table></table></body></html>",
-        "noQuirksBodyHtml": "<plaintext></plaintext></plaintext><table></table>"
+        "html": "<!DOCTYPE html><html><head></head><body><plaintext>&lt;/plaintext></plaintext><table></table></body></html>",
+        "noQuirksBodyHtml": "<plaintext>&lt;/plaintext></plaintext><table></table>"
       }
     },
     {
@@ -49433,8 +49433,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><plaintext></plaintext></plaintext><table><tbody></tbody></table></body></html>",
-        "noQuirksBodyHtml": "<plaintext></plaintext></plaintext><table><tbody></tbody></table>"
+        "html": "<!DOCTYPE html><html><head></head><body><plaintext>&lt;/plaintext></plaintext><table><tbody></tbody></table></body></html>",
+        "noQuirksBodyHtml": "<plaintext>&lt;/plaintext></plaintext><table><tbody></tbody></table>"
       }
     },
     {
@@ -49509,8 +49509,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><plaintext></plaintext></plaintext><table><tbody><tr></tr></tbody></table></body></html>",
-        "noQuirksBodyHtml": "<plaintext></plaintext></plaintext><table><tbody><tr></tr></tbody></table>"
+        "html": "<!DOCTYPE html><html><head></head><body><plaintext>&lt;/plaintext></plaintext><table><tbody><tr></tr></tbody></table></body></html>",
+        "noQuirksBodyHtml": "<plaintext>&lt;/plaintext></plaintext><table><tbody><tr></tr></tbody></table>"
       }
     },
     {
@@ -49581,8 +49581,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><table><tbody><tr><td><plaintext></plaintext></plaintext></td></tr></tbody></table></body></html>",
-        "noQuirksBodyHtml": "<table><tbody><tr><td><plaintext></plaintext></plaintext></td></tr></tbody></table>"
+        "html": "<!DOCTYPE html><html><head></head><body><table><tbody><tr><td><plaintext>&lt;/plaintext></plaintext></td></tr></tbody></table></body></html>",
+        "noQuirksBodyHtml": "<table><tbody><tr><td><plaintext>&lt;/plaintext></plaintext></td></tr></tbody></table>"
       }
     },
     {
@@ -49640,8 +49640,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><table><caption><plaintext></plaintext></plaintext></caption></table></body></html>",
-        "noQuirksBodyHtml": "<table><caption><plaintext></plaintext></plaintext></caption></table>"
+        "html": "<!DOCTYPE html><html><head></head><body><table><caption><plaintext>&lt;/plaintext></plaintext></caption></table></body></html>",
+        "noQuirksBodyHtml": "<table><caption><plaintext>&lt;/plaintext></plaintext></caption></table>"
       }
     },
     {
@@ -56267,8 +56267,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><plaintext></plaintext></plaintext></body></html>",
-        "noQuirksBodyHtml": "<plaintext></plaintext></plaintext>"
+        "html": "<html><head></head><body><plaintext>&lt;/plaintext></plaintext></body></html>",
+        "noQuirksBodyHtml": "<plaintext>&lt;/plaintext></plaintext>"
       }
     },
     {
@@ -56506,8 +56506,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><script type=\"text/x-foobar;baz\">X</SCRipt</script></head><body></body></html>",
-        "noQuirksBodyHtml": "<script type=\"text/x-foobar;baz\">X</SCRipt</script>"
+        "html": "<!DOCTYPE html><html><head><script type=\"text/x-foobar;baz\">X&lt;/SCRipt</script></head><body></body></html>",
+        "noQuirksBodyHtml": "<script type=\"text/x-foobar;baz\">X&lt;/SCRipt</script>"
       }
     },
     {
@@ -57740,8 +57740,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><title>X</title><meta name=\"z\"><link rel=\"foo\"><style>\nx { content:\"</style\" } </style></body></html>",
-        "noQuirksBodyHtml": "<title>X</title><meta name=\"z\"><link rel=\"foo\"><style>\nx { content:\"</style\" } </style>"
+        "html": "<!DOCTYPE html><html><head></head><body><title>X</title><meta name=\"z\"><link rel=\"foo\"><style>\nx { content:\"&lt;/style\" } </style></body></html>",
+        "noQuirksBodyHtml": "<title>X</title><meta name=\"z\"><link rel=\"foo\"><style>\nx { content:\"&lt;/style\" } </style>"
       }
     },
     {
