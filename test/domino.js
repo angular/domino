@@ -1492,3 +1492,9 @@ exports.supportsNonceAttribute = function() {
   h1.nonce = 'randomhaash';
   h1.outerHTML.should.equal('<style nonce="randomhaash">* {color: red}</style>');
 };
+
+exports.supportsHtmlElementsInNoScriptTag = function() {
+  const document = domino.createDocument('<body><noscript>For information <em>click</em> here.</noscript></body>');
+  const noscript = document.querySelector('noscript');
+  noscript.outerHTML.should.equal('<noscript>For information <em>click</em> here.</noscript>');
+};
