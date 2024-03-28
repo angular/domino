@@ -60,6 +60,13 @@ exports.closest = function() {
   (r8 === null).should.be.true();
 };
 
+exports.querySelector = function() {
+  var window = createWindow(html);
+  var d = window.document;
+  var nothing = d.querySelector('.foobar');
+  (nothing === null).should.be.true();
+};
+
 exports.querySelectorAll = function() {
   var window = createWindow(html);
   var d = window.document;
@@ -488,7 +495,7 @@ exports.eqAttr = function() {
   var html = "<div id=a ==x><a=B></A=b></div>";
   var doc = domino.createDocument(html);
   var div = doc.querySelector('#a');
-  (div != null).should.be.true(); // jshint ignore:line
+  (div !== null).should.be.true(); // jshint ignore:line
   div.attributes.length.should.equal(2);
   div.attributes.item(1).name.should.equal('=');
   div.children.length.should.equal(1);
