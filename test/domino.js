@@ -1498,3 +1498,14 @@ exports.supportsHtmlElementsInNoScriptTag = function() {
   const noscript = document.querySelector('noscript');
   noscript.outerHTML.should.equal('<noscript>For information <em>click</em> here.</noscript>');
 };
+
+exports.worksWithBase64DataImages = function () {
+  var document = domino.createDocument("<div></div>");
+  var div = document.querySelector("div");
+  div.style.backgroundImage =
+    "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII)";
+  div.outerHTML.should.equal(
+    '<div style="background-image: url(data:image/png;base64,' +
+      'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII);"></div>'
+  );
+};
