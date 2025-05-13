@@ -28,7 +28,7 @@ let browser;
 let incognito;
 
 exports.before = async function() {
-  browser = await puppeteer.launch({headless:"new"});
+  browser = await puppeteer.launch({headless:"new", args: ['--no-sandbox', '--disable-gpu']});
   incognito = await browser.createIncognitoBrowserContext();
 }
 
