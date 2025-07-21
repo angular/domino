@@ -4,7 +4,6 @@
   "license": "BSD-2-Clause",
   "author": "Felix Gnass <fgnass@gmail.com>",
   "description": "Server-side DOM implementation based on Mozilla's dom.js",
-  "main": "./lib",
   "repository": {
     "type": "git",
     "url": "https://github.com/angular/domino.git"
@@ -12,7 +11,12 @@
   "scripts": {
     "test": "mocha"
   },
-  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
   "devDependencies": {
     "jquery": "^3.5.1",
     "mocha": "^6.2.3",
