@@ -10945,8 +10945,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><div<div></div<div></body></html>",
-        "noQuirksBodyHtml": "<div<div></div<div>"
+        "html": "<html><head></head><body><div&lt;div></div&lt;div></body></html>",
+        "noQuirksBodyHtml": "<div&lt;div></div<div>"
       }
     },
     {
@@ -10990,7 +10990,7 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><div foo<bar=\"\"></div></body></html>",
+        "html": "<html><head></head><body><div foo&lt;bar=\"\"></div></body></html>",
         "noQuirksBodyHtml": "<div foo<bar=\"\"></div>"
       }
     },
@@ -58367,7 +58367,7 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE <!doctype><html><head></head><body>&gt;<!--<!--x-->--&gt;</body></html>",
+        "html": "<!DOCTYPE &lt;!doctype><html><head></head><body>&gt;<!--<!--x-->--&gt;</body></html>",
         "noQuirksBodyHtml": "&gt;<!--<!--x-->--&gt;"
       }
     },
@@ -65403,7 +65403,7 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><p><code x<=\"\" code=\"\"></code></p><code x<=\"\" code=\"\">\n</code></body></html>",
+        "html": "<html><head></head><body><p><code x&lt;=\"\" code=\"\"></code></p><code x&lt;=\"\" code=\"\">\n</code></body></html>",
         "noQuirksBodyHtml": "<p><code x<=\"\" code=\"\"></code></p><code x<=\"\" code=\"\">\n</code>"
       }
     },
@@ -79080,8 +79080,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><img <=\"\" fail=\"\"></body></html>",
-        "noQuirksBodyHtml": "<img <=\"\" fail=\"\">"
+        "html": "<html><head></head><body><img &lt;=\"\" fail=\"\"></body></html>",
+        "noQuirksBodyHtml": "<img &lt;=\"\" fail=\"\">"
       }
     },
     {

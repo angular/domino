@@ -352,4 +352,66 @@ exports.verifyEscapeProcessingInstructionContent = function () {
   for (const [rawContent, expected] of cases) {
     NodeUtils.ɵescapeProcessingInstructionContent(rawContent).should.equal(expected);
   }
+}
+
+exports.testXssInAttributeName = function () {
+  var document = domino.createDocument();
+  var attr = document.createAttribute('safe');
+  attr.localName = '><script>alert(1)';
+  var div = document.createElement('div');
+  div.setAttributeNode(attr);
+
+  var serialized = div.outerHTML;
+
+  serialized.should.not.containEql('<script>');
+  serialized.should.containEql('&lt;script&gt;');
+};
+
+exports.testXssInAttributePrefix = function () {
+  var document = domino.createDocument();
+  var attr = document.createAttributeNS('http://example.com/ns', 'p:safe');
+  attr.prefix = '><script>alert(1)';
+  var div = document.createElement('div');
+  div.setAttributeNode(attr);
+
+  var serialized = div.outerHTML;
+
+  serialized.should.not.containEql('<script>');
+  serialized.should.containEql('&lt;script&gt;');
+};
+
+exports.testXssInTagName = function () {
+  var document = domino.createDocument();
+  var div = document.createElement('div');
+  div.localName = 'script>alert(1)</script';
+
+  var serialized = div.outerHTML;
+
+  serialized.should.not.containEql('<script>alert(1)');
+  serialized.should.containEql('script&gt;alert(1)');
+};
+
+exports.testXssInDoctypeName = function () {
+  var document = domino.createDocument();
+  // Remove existing doctype/documentElement if any
+  while (document.firstChild) document.removeChild(document.firstChild);
+
+  var doctype = document.implementation.createDocumentType('html', '', '');
+  doctype.name = 'html><script>alert(1)</script>';
+  document.appendChild(doctype);
+
+  var serialized = document.serialize();
+  serialized.should.not.containEql('<script>');
+  serialized.should.containEql('&lt;script&gt;');
+};
+
+exports.testXssInPITarget = function () {
+  var document = domino.createDocument();
+  var pi = document.createProcessingInstruction('target', 'data');
+  pi.target = 'target><script>alert(1)</script>';
+  document.appendChild(pi);
+
+  var serialized = document.serialize();
+  serialized.should.not.containEql('<script>');
+  serialized.should.containEql('&lt;script&gt;');
 };
