@@ -21,13 +21,3 @@ node_modules
 # Ignore npm/yarn debug log
 npm-debug.log
 yarn-error.log
-
-# Yarn v2+. Zero installs disabled since we are not using PnP.
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-!.yarn/yarn.js
