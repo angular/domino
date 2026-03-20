@@ -1,7 +1,7 @@
 {
   "name": "@angular/domino",
   "version": "2.1.6+git",
-  "license": "BSD-2-Clause",
+  "license": "(BSD-2-Clause AND MIT)",
   "author": "Felix Gnass <fgnass@gmail.com>",
   "description": "Server-side DOM implementation based on Mozilla's dom.js",
   "main": "./lib",
