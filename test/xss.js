@@ -199,6 +199,21 @@ exports.noscriptMatchingClosingTagInRawText = function () {
   return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
 };
 
+exports.iframeMatchingClosingTagWithAstralPrefix = function () {
+  // Astral characters (e.g. emoji) before a `</iframe>` inside iframe text
+  // content must still trigger the closing-tag escape, otherwise the
+  // payload breaks out and a sibling <script> executes in the browser.
+  const document = domino.createDocument('<!doctype html><html><body><iframe></iframe></body></html>');
+  const iframe = document.getElementsByTagName('iframe')[0];
+  iframe.textContent =
+    '\uD83D\uDE00'.repeat(20) +
+    "</iframe><script>/*AAAAAAAAAAAAAAAAAAAAAAAAAAAA*/alert(1)</script>";
+
+  const html = document.serialize();
+  html.should.not.match(/<\/iframe><script>/);
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
 exports.scriptMatchingClosingTagInRawText = function () {
   const document = domino.createDocument('');
   const script = document.createElement('script');
@@ -335,6 +350,20 @@ exports.verifyEscapeMatchingClosingTag = function () {
       '<xmp></style><script>alert(1)</script></xmp>',
       'iframe',
       '<xmp></style><script>alert(1)</script></xmp>',
+    ],
+
+    // Astral (non-BMP) characters before the closing tag must not shift
+    // the position of the escape: regex `match.index` is a UTF-16 code-unit
+    // offset while a code-point array would be off by one per astral char.
+    [
+      '\uD83D\uDE00'.repeat(20) + '</iframe><script>alert(1)</script>',
+      'iframe',
+      '\uD83D\uDE00'.repeat(20) + '&lt;/iframe><script>alert(1)</script>',
+    ],
+    [
+      '\uD83D\uDE00</style><script>alert(1)</script>',
+      'style',
+      '\uD83D\uDE00&lt;/style><script>alert(1)</script>',
     ],
   ];
   for (const [rawContent, parentTag, expected] of cases) {
