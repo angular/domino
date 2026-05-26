@@ -180,13 +180,11 @@ exports.styleMatchingClosingTagSkipsUnclosedCommentedContent = function () {
 };
 
 exports.noscriptMatchingClosingTagInRawText = function () {
-  // Use a parsed document so `_scripting_enabled` is true, matching how
-  // Angular SSR / platform-server uses domino. With scripting enabled,
   // <noscript> is a raw-text element on serialization and its text data
   // must have any `</noscript` closing-tag prefix escaped, otherwise an
   // attacker-controlled text payload can break out and inject a live
   // <script> sibling in the receiving browser.
-  const document = domino.createDocument('<!doctype html><html><body></body></html>');
+  const document = domino.createDocument('');
   const noscript = document.createElement('noscript');
   noscript.textContent = 'abc</noscript><script>alert(1)</script>';
   document.body.appendChild(noscript);
