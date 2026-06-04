@@ -987,6 +987,23 @@ exports.createSvgElements = function() {
   document.body.innerHTML.should.equal("<svg></svg>");
 };
 
+exports.svgAttributeNameAdjustmentsFromSetAttribute = function() {
+  var document = domino.createDocument();
+  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  var set = document.createElementNS("http://www.w3.org/2000/svg", "set");
+
+  set.setAttribute("attributename", "href");
+  set.setAttribute("to", "javascript:alert(1)");
+  svg.appendChild(set);
+  document.body.appendChild(svg);
+
+  set.getAttribute("attributeName").should.equal("href");
+  (set.getAttribute("attributename") === null).should.be.true();
+  document.body.innerHTML.should.equal(
+    '<svg><set attributeName="href" to="javascript:alert(1)"></set></svg>'
+  );
+};
+
 exports.gh95 = function() {
     var document = domino.createDocument(
         '<body><a href="foo\'s">bar</a></body>'
