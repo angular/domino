@@ -14216,8 +14216,8 @@
             ]
           }
         ],
-        "html": "<html><head><noscript><noframes>XXX</noscript></noframes></noscript></head><body></body></html>",
-        "noQuirksBodyHtml": "<noscript><noframes>XXX</noscript></noframes></noscript>"
+        "html": "<html><head><noscript><noframes>XXX&lt;/noscript&gt;</noframes></noscript></head><body></body></html>",
+        "noQuirksBodyHtml": "<noscript><noframes>XXX&lt;/noscript&gt;</noframes></noscript>"
       }
     },
     {
@@ -39310,8 +39310,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><frameset><frame><frameset><frame></frameset><noframes></frameset><noframes></noframes></frameset></html>",
-        "noQuirksBodyHtml": "<noframes></frameset><noframes></noframes>"
+        "html": "<html><head></head><frameset><frame><frameset><frame></frameset><noframes>&lt;/frameset&gt;&lt;noframes&gt;</noframes></frameset></html>",
+        "noQuirksBodyHtml": "<noframes>&lt;/frameset&gt;&lt;noframes&gt;</noframes>"
       }
     },
     {
@@ -43467,7 +43467,7 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noscript><!--</noscript></head><body>X<noscript>--></noscript></body></html>",
+        "html": "<!DOCTYPE html><html><head><noscript><!--</noscript></head><body>X<noscript>--&gt;</noscript></body></html>",
         "noQuirksBodyHtml": "<noscript><!--</noscript>X<noscript>--></noscript>"
       }
     },
@@ -43563,8 +43563,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noscript><iframe></noscript></head><body>X</body></html>",
-        "noQuirksBodyHtml": "<noscript><iframe></noscript>X</iframe></noscript>"
+        "html": "<!DOCTYPE html><html><head><noscript>&lt;iframe&gt;</noscript></head><body>X</body></html>",
+        "noQuirksBodyHtml": "<noscript><iframe>&lt;/noscript&gt;X</iframe></noscript>"
       }
     },
     {
@@ -43618,8 +43618,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noscript></noscript></head><body><iframe></noscript>X</iframe></body></html>",
-        "noQuirksBodyHtml": "<noscript><iframe></noscript>X</iframe></noscript>"
+        "html": "<!DOCTYPE html><html><head><noscript></noscript></head><body><iframe>&lt;/noscript&gt;X</iframe></body></html>",
+        "noQuirksBodyHtml": "<noscript><iframe>&lt;/noscript&gt;X</iframe></noscript>"
       }
     },
     {
@@ -43717,8 +43717,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noframes><body><script><!--...</script></body></noframes></head><body></body></html>",
-        "noQuirksBodyHtml": "<noframes><body><script><!--...</script></body></noframes>"
+        "html": "<!DOCTYPE html><html><head><noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes></head><body></body></html>",
+        "noQuirksBodyHtml": "<noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes>"
       }
     },
     {
@@ -47887,7 +47887,7 @@
             ]
           }
         ],
-        "html": "<html><head><noscript><!--</noscript></head><body>X<noscript>--></noscript></body></html>",
+        "html": "<html><head><noscript><!--</noscript></head><body>X<noscript>--&gt;</noscript></body></html>",
         "noQuirksBodyHtml": "<noscript><!--</noscript>X<noscript>--></noscript>"
       }
     },
@@ -47979,8 +47979,8 @@
             ]
           }
         ],
-        "html": "<html><head><noscript><iframe></noscript></head><body>X</body></html>",
-        "noQuirksBodyHtml": "<noscript><iframe></noscript>X</iframe></noscript>"
+        "html": "<html><head><noscript>&lt;iframe&gt;</noscript></head><body>X</body></html>",
+        "noQuirksBodyHtml": "<noscript><iframe>&lt;/noscript&gt;X</iframe></noscript>"
       }
     },
     {
@@ -48031,8 +48031,8 @@
             ]
           }
         ],
-        "html": "<html><head><noscript></noscript></head><body><iframe></noscript>X</iframe></body></html>",
-        "noQuirksBodyHtml": "<noscript><iframe></noscript>X</iframe></noscript>"
+        "html": "<html><head><noscript></noscript></head><body><iframe>&lt;/noscript&gt;X</iframe></body></html>",
+        "noQuirksBodyHtml": "<noscript><iframe>&lt;/noscript&gt;X</iframe></noscript>"
       }
     },
     {
@@ -48125,8 +48125,8 @@
             ]
           }
         ],
-        "html": "<html><head><noframes><body><script><!--...</script></body></noframes></head><body></body></html>",
-        "noQuirksBodyHtml": "<noframes><body><script><!--...</script></body></noframes>"
+        "html": "<html><head><noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes></head><body></body></html>",
+        "noQuirksBodyHtml": "<noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes>"
       }
     },
     {
