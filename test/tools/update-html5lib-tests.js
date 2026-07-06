@@ -51,6 +51,12 @@ var NO_ESCAPE = {
   noframes:true, plaintext:true,
   noscript: true // <- assumes that scripting is enabled.
 };
+var NO_ESCAPE_FALLBACK = {
+  iframe: true,
+  noembed: true,
+  noframes: true,
+  noscript: true
+};
 
 var localname = function(namestring) {
   return namestring.replace(/^(svg|math|xlink|xml|xmlns) /, '');
@@ -117,6 +123,7 @@ var serialize_doc = function(filename, fragment, doc) {
   var clear_add_attr = function() {
     if (can_add_attr) {
       result += '>';
+      stack_top().contentStart = result.length;
       can_add_attr = false;
     }
   };
@@ -130,10 +137,18 @@ var serialize_doc = function(filename, fragment, doc) {
                                filename, doc);
         }
       } else {
+        if (old.ns === namespace('html') &&
+            NO_ESCAPE[old.tag] &&
+            !NO_ESCAPE_FALLBACK[old.tag] &&
+            old.contentStart !== undefined) {
+          result = result.slice(0, old.contentStart) +
+              escapeMatchingClosingTag(result.slice(old.contentStart), old.tag);
+        }
         result += '</' + old.tag + '>';
       }
     }
     // save some space in the JSON output by omitting empty lists
+    old.contentStart = undefined;
     if (old.children.length===0) { old.children = undefined; }
     if (old.attrs && old.attrs.length===0) { old.attrs = undefined; }
     return old;
@@ -160,6 +175,54 @@ var serialize_doc = function(filename, fragment, doc) {
       case '\u00A0': return '&nbsp;';
       }
     });
+  };
+  var escapeRegExp = function(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+  var escapeMatchingClosingTag = function(s, parentTag) {
+    var parentClosingTag = ('</' + parentTag).toLowerCase();
+    if (!s.toLowerCase().includes(parentClosingTag)) {
+      return s;
+    }
+    return s.replace(
+        new RegExp(escapeRegExp(parentClosingTag), 'ig'),
+        function(m) { return '&lt;' + m.slice(1); });
+  };
+  var findCommentEnd = function(s, index) {
+    if (s.charAt(index) === '>') {
+      return index + 1;
+    }
+    if (s.charAt(index) === '-' && s.charAt(index + 1) === '>') {
+      return index + 2;
+    }
+
+    var match = /--!?>/.exec(s.slice(index));
+    return match ? index + match.index + match[0].length : -1;
+  };
+  var escapeFallbackRawText = function(s, parentTag) {
+    var result = '';
+    var index = 0;
+
+    while (index < s.length) {
+      var commentStart = s.indexOf('<!--', index);
+      if (commentStart === -1) {
+        result += escape(s.slice(index));
+        break;
+      }
+
+      result += escape(s.slice(index, commentStart));
+
+      var commentEnd = findCommentEnd(s, commentStart + 4);
+      if (commentEnd === -1) {
+        result += escapeMatchingClosingTag(s.slice(commentStart), parentTag);
+        break;
+      }
+
+      result += escapeMatchingClosingTag(s.slice(commentStart, commentEnd), parentTag);
+      index = commentEnd;
+    }
+
+    return result;
   };
 
   while (doc.length > 0) {
@@ -246,7 +309,9 @@ var serialize_doc = function(filename, fragment, doc) {
       if (text !== escape(text) && !obj.no_escape) {
         obj.escaped = props.escaped = true;
       }
-      result += obj.no_escape ? text : escape(text);
+      result += obj.no_escape
+        ? (NO_ESCAPE_FALLBACK[stack_top().tag] ? escapeFallbackRawText(text, stack_top().tag) : text)
+        : escape(text);
       stack_top().children.push(obj);
       continue;
     }
@@ -330,6 +395,13 @@ var twiddle_test = function(filename, tc) {
   if (filename==='webkit01' &&
       /<rdar: 6869687="" problem="">/.test(expected)) {
     expected = expected.replace(/(6869687=[^> ]+) (problem=[^> ]+)/g, '$2 $1');
+  }
+  if (filename==='webkit02' &&
+      tc.script==='on' &&
+      /<p id="status"><noscript><strong>A<\/strong><\/noscript><span>B<\/span><\/p>/.test(tc.data)) {
+    expected = expected.replace(
+        '<noscript>&lt;strong&gt;A&lt;/strong&gt;</noscript>',
+        '<noscript><strong>A</strong></noscript>');
   }
   tc.document.html = expected;
   // Will this pass if parsed as a <body> fragment in no-quirks mode?

@@ -191,7 +191,7 @@ exports.noscriptMatchingClosingTagInRawText = function () {
 
   document.body
     .serialize()
-    .should.equal('<noscript>abc&lt;/noscript><script>alert(1)</script></noscript>');
+    .should.equal('<noscript>abc&lt;/noscript&gt;&lt;script&gt;alert(1)&lt;/script&gt;</noscript>');
 
   const html = document.serialize();
   return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
@@ -210,6 +210,193 @@ exports.iframeMatchingClosingTagWithAstralPrefix = function () {
   const html = document.serialize();
   html.should.not.match(/<\/iframe><script>/);
   return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
+exports.iframeAncestorClosingTagEscaped = function () {
+  const document = domino.createDocument('');
+  const section = document.createElement('section');
+  const iframe = document.createElement('iframe');
+  iframe.textContent = '</section><script>alert("iframe_ancestor_close")//</script><section>';
+  section.appendChild(iframe);
+  document.body.appendChild(section);
+
+  document.body
+    .serialize()
+    .should.equal(
+      '<section><iframe>&lt;/section&gt;&lt;script&gt;alert("iframe_ancestor_close")//&lt;/script&gt;&lt;section&gt;</iframe></section>',
+    );
+
+  const reparsed = domino.createDocument('<body>' + iframe.serialize() + '</body>').body.innerHTML;
+  reparsed.should.not.containEql('<script>');
+  return alertFired(reparsed).should.eventually.be.false('alert fired after normal HTML reparse for: ' + reparsed);
+};
+
+exports.noscriptAncestorClosingTagEscaped = function () {
+  const document = domino.createDocument('');
+  const div = document.createElement('div');
+  const noscript = document.createElement('noscript');
+  noscript.textContent = '</div><script>alert("noscript_ancestor_close")//</script><div>';
+  div.appendChild(noscript);
+  document.body.appendChild(div);
+
+  document.body
+    .serialize()
+    .should.equal(
+      '<div><noscript>&lt;/div&gt;&lt;script&gt;alert("noscript_ancestor_close")//&lt;/script&gt;&lt;div&gt;</noscript></div>',
+    );
+
+  const reparsed = domino.createDocument('<body>' + noscript.serialize() + '</body>').body.innerHTML;
+  reparsed.should.not.containEql('<script>');
+  return alertFired(reparsed).should.eventually.be.false('alert fired after normal HTML reparse for: ' + reparsed);
+};
+
+exports.fallbackRawTextPreservesCommentSyntax = function () {
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  const iframe = document.createElement('iframe');
+  const uppercaseNoscript = document.createElementNS('http://www.w3.org/1999/xhtml', 'NOSCRIPT');
+
+  noscript.textContent = '<!-- fallback comment -->';
+  iframe.textContent = '<!-- fallback comment -->';
+  uppercaseNoscript.textContent = '<!-- fallback comment -->';
+  document.body.appendChild(noscript);
+  document.body.appendChild(iframe);
+  document.body.appendChild(uppercaseNoscript);
+
+  document.body
+    .serialize()
+    .should.equal(
+      '<noscript><!-- fallback comment --></noscript><iframe><!-- fallback comment --></iframe><NOSCRIPT><!-- fallback comment --></NOSCRIPT>',
+    );
+};
+
+exports.fallbackRawTextPreservesCommentNodes = function () {
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  noscript.appendChild(document.createComment('<noscript></noscript>'));
+  document.body.appendChild(noscript);
+
+  document.body
+    .serialize()
+    .should.equal('<noscript><!--<noscript></noscript>--></noscript>');
+};
+
+exports.fallbackRawTextEscapesMarkupAfterComment = function () {
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  noscript.textContent = '<!-- fallback comment --><script>alert("comment_suffix")//</script>';
+  document.body.appendChild(noscript);
+
+  document.body
+    .serialize()
+    .should.equal(
+      '<noscript><!-- fallback comment -->&lt;script&gt;alert("comment_suffix")//&lt;/script&gt;</noscript>',
+    );
+
+  const reparsedDocument = domino.createDocument('<body>' + noscript.serialize() + '</body>');
+  reparsedDocument.getElementsByTagName('script').length.should.equal(0);
+
+  const html = reparsedDocument.serialize();
+  return alertFired(html).should.eventually.be.false('alert fired after normal HTML reparse for: ' + html);
+};
+
+exports.fallbackRawTextEscapesMarkupAfterAbruptCommentClose = async function () {
+  const cases = [
+    {
+      tagName: 'iframe',
+      payload: '<!--><script>alert("iframe_abrupt_comment")//</script>',
+      expected:
+        '<iframe><!-->&lt;script&gt;alert("iframe_abrupt_comment")//&lt;/script&gt;</iframe>',
+    },
+    {
+      tagName: 'noscript',
+      payload: '<!---><script>alert("noscript_abrupt_comment")//</script>',
+      expected:
+        '<noscript><!--->&lt;script&gt;alert("noscript_abrupt_comment")//&lt;/script&gt;</noscript>',
+    },
+    {
+      tagName: 'iframe',
+      payload: '<!--></section><script>alert("iframe_abrupt_ancestor")//</script><section>',
+      expected:
+        '<iframe><!-->&lt;/section&gt;&lt;script&gt;alert("iframe_abrupt_ancestor")//&lt;/script&gt;&lt;section&gt;</iframe>',
+    },
+    {
+      tagName: 'noscript',
+      payload: '<!---></div><script>alert("noscript_abrupt_ancestor")//</script><div>',
+      expected:
+        '<noscript><!--->&lt;/div&gt;&lt;script&gt;alert("noscript_abrupt_ancestor")//&lt;/script&gt;&lt;div&gt;</noscript>',
+    },
+  ];
+
+  for (const testCase of cases) {
+    const document = domino.createDocument('');
+    const element = document.createElement(testCase.tagName);
+    element.textContent = testCase.payload;
+    document.body.appendChild(element);
+
+    const html = document.body.serialize();
+    html.should.equal(testCase.expected);
+    html.should.not.containEql('<script>');
+
+    const reparsed = domino.createDocument('<body>' + html + '</body>').body.innerHTML;
+    reparsed.should.not.containEql('<script>');
+    const alerted = await alertFired(reparsed);
+    alerted.should.equal(false, 'alert fired after normal HTML reparse for: ' + reparsed);
+  }
+};
+
+exports.fallbackRawTextEscapesDangerousCurrentCloseInsideComment = function () {
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  noscript.textContent = '<!--</noscript><script>alert("comment_breakout")//</script>-->';
+  document.body.appendChild(noscript);
+
+  const html = document.body.serialize();
+  html.should.equal(
+    '<noscript><!--&lt;/noscript><script>alert("comment_breakout")//</script>--></noscript>',
+  );
+
+  return alertFired(document.serialize()).should.eventually.be.false('alert fired for: ' + html);
+};
+
+exports.fallbackRawTextEscapesUppercaseCurrentCloseInsideComment = function () {
+  const document = domino.createDocument('');
+  const noscript = document.createElementNS('http://www.w3.org/1999/xhtml', 'NOSCRIPT');
+  noscript.textContent = '<!--</NOSCRIPT><script>alert("uppercase_comment_breakout")//</script>-->';
+  document.body.appendChild(noscript);
+
+  const html = document.body.serialize();
+  html.should.equal(
+    '<NOSCRIPT><!--&lt;/NOSCRIPT><script>alert("uppercase_comment_breakout")//</script>--></NOSCRIPT>',
+  );
+
+  return alertFired(document.serialize()).should.eventually.be.false('alert fired for: ' + html);
+};
+
+exports.fallbackRawTextEscapesNonAncestorClosingTag = function () {
+  const document = domino.createDocument('');
+  const main = document.createElement('main');
+  const noscript = document.createElement('noscript');
+  const iframe = document.createElement('iframe');
+  const payload = '</noscript><script>alert("noscript_iframe")//</script><noscript>';
+
+  noscript.textContent = payload;
+  iframe.textContent = payload;
+  main.appendChild(noscript);
+  main.appendChild(iframe);
+  document.body.appendChild(main);
+
+  const html = document.body.serialize();
+  html.should.not.containEql('</noscript><script>');
+  html.should.not.containEql('</script><noscript>');
+  html.should.not.containEql('<script>');
+  html.should.containEql(
+    '<iframe>&lt;/noscript&gt;&lt;script&gt;alert("noscript_iframe")//&lt;/script&gt;&lt;noscript&gt;</iframe>',
+  );
+
+  const reparsed = domino.createDocument('<body>' + iframe.serialize() + '</body>').body.innerHTML;
+  reparsed.should.not.containEql('<script>');
+  return alertFired(reparsed).should.eventually.be.false('alert fired after normal HTML reparse for: ' + reparsed);
 };
 
 exports.scriptMatchingClosingTagInRawText = function () {
@@ -362,6 +549,11 @@ exports.verifyEscapeMatchingClosingTag = function () {
       '\uD83D\uDE00</style><script>alert(1)</script>',
       'style',
       '\uD83D\uDE00&lt;/style><script>alert(1)</script>',
+    ],
+    [
+      '</NOSCRIPT><script>alert(1)</script>',
+      'NOSCRIPT',
+      '&lt;/NOSCRIPT><script>alert(1)</script>',
     ],
   ];
   for (const [rawContent, parentTag, expected] of cases) {
