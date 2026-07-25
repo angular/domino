@@ -1049,6 +1049,53 @@ exports.gh90 = function() {
   input.hasAttributeNS('foo', 'checked').should.equal(false);
 };
 
+exports.inputValueHandling = function() {
+  var input = domino.createDocument('<input>').querySelector('input');
+
+  input.value = 'hello';
+  input.value.should.equal('hello');
+  input.outerHTML.should.equal('<input value="hello">');
+
+  input.value = null;
+  input.value.should.equal('');
+  input.outerHTML.should.equal('<input value="">');
+
+  input.value = undefined;
+  input.value.should.equal('undefined');
+  input.outerHTML.should.equal('<input value="undefined">');
+
+  input.value = NaN;
+  input.value.should.equal('NaN');
+  input.outerHTML.should.equal('<input value="NaN">');
+
+  var seeded = domino.createDocument('<input value="initial">')
+    .querySelector('input');
+
+  seeded.value.should.equal('initial');
+
+  seeded.value = 'changed';
+  seeded.value.should.equal('changed');
+  seeded.outerHTML.should.equal('<input value="changed">');
+
+  var clone = seeded.cloneNode(true);
+
+  clone.value.should.equal('changed');
+  clone.outerHTML.should.equal('<input value="changed">');
+
+  seeded.value = null;
+  seeded.value.should.equal('');
+  seeded.outerHTML.should.equal('<input value="">');
+
+  // Input type transitions (hidden <-> text)
+  var trInput = domino.createDocument('<input>').querySelector('input');
+  trInput.value = 'hello';
+  trInput.type = 'hidden';
+  trInput.value.should.equal('hello');
+
+  trInput.type = 'text';
+  trInput.value.should.equal('hello');
+};
+
 exports.gh98 = function() {
   var doc = '<a href="/"></a>';
   var document = domino.createDocument(doc);
