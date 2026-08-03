@@ -278,7 +278,7 @@ exports.fallbackRawTextPreservesCommentNodes = function () {
 
   document.body
     .serialize()
-    .should.equal('<noscript><!--<noscript></noscript>--></noscript>');
+    .should.equal('<noscript><!--<noscript>&lt;/noscript>--></noscript>');
 };
 
 exports.fallbackRawTextEscapesMarkupAfterComment = function () {
@@ -592,3 +592,157 @@ exports.verifyEscapeProcessingInstructionContent = function () {
     NodeUtils.ɵescapeProcessingInstructionContent(rawContent).should.equal(expected);
   }
 };
+
+exports.fallbackRawTextCommentNodeEscapesAncestorClosingTag = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const tag of fallbackTags) {
+    // Comment node directly inside fallback raw-content element
+    {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      const comment = document.createComment(`</${tag}><img src=x onerror=alert(1)>`);
+      el.appendChild(comment);
+      document.body.appendChild(el);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(`<${tag}><!--&lt;/${tag}><img src=x onerror=alert(1)>--></${tag}>`);
+
+      const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(false, `alert fired after normal HTML reparse for comment in <${tag}>: ` + reparsed);
+    }
+
+    // Comment node inside a child element (descendant) of fallback raw-content element
+    {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      const div = document.createElement('div');
+      const comment = document.createComment(`</${tag}><img src=x onerror=alert(1)>`);
+      div.appendChild(comment);
+      el.appendChild(div);
+      document.body.appendChild(el);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(`<${tag}><div><!--&lt;/${tag}><img src=x onerror=alert(1)>--></div></${tag}>`);
+
+      const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for descendant comment in <${tag}>: ` + reparsed,
+      );
+    }
+
+    // Regular comments without closing tags are unchanged
+    {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      const comment = document.createComment(' normal comment ');
+      el.appendChild(comment);
+      document.body.appendChild(el);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(`<${tag}><!-- normal comment --></${tag}>`);
+    }
+  }
+};
+
+exports.fallbackRawTextNestedRawTextElementsEscapeAncestorClosingTag = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+  const rawTextTags = ['xmp', 'style', 'script', 'plaintext'];
+
+  for (const fallbackTag of fallbackTags) {
+    for (const rawTextTag of rawTextTags) {
+      // Direct child non-fallback raw-text element inside fallback raw-content element
+      {
+        const document = domino.createDocument('');
+        const fallbackEl = document.createElement(fallbackTag);
+        const rawEl = document.createElement(rawTextTag);
+        rawEl.textContent = `</${fallbackTag}><img src=x onerror=alert(1)>`;
+        fallbackEl.appendChild(rawEl);
+        document.body.appendChild(fallbackEl);
+
+        const serialized = document.body.serialize();
+        serialized.should.equal(
+          `<${fallbackTag}><${rawTextTag}>&lt;/${fallbackTag}><img src=x onerror=alert(1)></${rawTextTag}></${fallbackTag}>`,
+        );
+
+        const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+        const alerted = await alertFired(reparsed);
+        alerted.should.equal(
+          false,
+          `alert fired after normal HTML reparse for <${rawTextTag}> inside <${fallbackTag}>: ` + reparsed,
+        );
+      }
+
+      // Descendant non-fallback raw-text element inside a child element of fallback raw-content element
+      {
+        const document = domino.createDocument('');
+        const fallbackEl = document.createElement(fallbackTag);
+        const div = document.createElement('div');
+        const rawEl = document.createElement(rawTextTag);
+        rawEl.textContent = `</${fallbackTag}><img src=x onerror=alert(1)>`;
+        div.appendChild(rawEl);
+        fallbackEl.appendChild(div);
+        document.body.appendChild(fallbackEl);
+
+        const serialized = document.body.serialize();
+        serialized.should.equal(
+          `<${fallbackTag}><div><${rawTextTag}>&lt;/${fallbackTag}><img src=x onerror=alert(1)></${rawTextTag}></div></${fallbackTag}>`,
+        );
+
+        const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+        const alerted = await alertFired(reparsed);
+        alerted.should.equal(
+          false,
+          `alert fired after normal HTML reparse for <${rawTextTag}> inside div in <${fallbackTag}>: ` + reparsed,
+        );
+      }
+    }
+  }
+};
+
+exports.fallbackRawTextTextNodeEscapesAncestorClosingTag = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const tag of fallbackTags) {
+    // Text node directly inside fallback raw-content element
+    {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      el.textContent = `</${tag}><img src=x onerror=alert(1)>`;
+      document.body.appendChild(el);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(`<${tag}>&lt;/${tag}&gt;&lt;img src=x onerror=alert(1)&gt;</${tag}>`);
+
+      const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+      reparsed.should.not.containEql('<img');
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(false, `alert fired after normal HTML reparse for text in <${tag}>: ` + reparsed);
+    }
+
+    // Text node inside a child element (descendant) of fallback raw-content element
+    {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      const div = document.createElement('div');
+      div.textContent = `</${tag}><img src=x onerror=alert(1)>`;
+      el.appendChild(div);
+      document.body.appendChild(el);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(`<${tag}><div>&lt;/${tag}&gt;&lt;img src=x onerror=alert(1)&gt;</div></${tag}>`);
+
+      const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+      reparsed.should.not.containEql('<img');
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for descendant text in <${tag}>: ` + reparsed,
+      );
+    }
+  }
+};
+
