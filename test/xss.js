@@ -746,3 +746,126 @@ exports.fallbackRawTextTextNodeEscapesAncestorClosingTag = async function () {
   }
 };
 
+exports.fallbackRawTextForeignContentEscapesAncestorClosingTag = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const tag of fallbackTags) {
+    // noscript/iframe/noembed/noframes > svg > foreignObject > xmp
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+      const xmp = document.createElement('xmp');
+      xmp.textContent = `</${tag}><img src=x onerror=alert(1)>`;
+      foreignObject.appendChild(xmp);
+      svg.appendChild(foreignObject);
+      fallbackEl.appendChild(svg);
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><svg><foreignObject><xmp>&lt;/${tag}><img src=x onerror=alert(1)></xmp></foreignObject></svg></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for SVG foreignObject xmp in <${tag}>: ` + reparsed,
+      );
+    }
+
+    // noscript/iframe/noembed/noframes > svg > foreignObject > #comment
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+      const comment = document.createComment(`</${tag}><img src=x onerror=alert(1)>`);
+      foreignObject.appendChild(comment);
+      svg.appendChild(foreignObject);
+      fallbackEl.appendChild(svg);
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><svg><foreignObject><!--&lt;/${tag}><img src=x onerror=alert(1)>--></foreignObject></svg></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for SVG foreignObject comment in <${tag}>: ` + reparsed,
+      );
+    }
+
+    // noscript/iframe/noembed/noframes > math > mtext > xmp
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      const math = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
+      const mtext = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'mtext');
+      const xmp = document.createElement('xmp');
+      xmp.textContent = `</${tag}><img src=x onerror=alert(1)>`;
+      mtext.appendChild(xmp);
+      math.appendChild(mtext);
+      fallbackEl.appendChild(math);
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><math><mtext><xmp>&lt;/${tag}><img src=x onerror=alert(1)></xmp></mtext></math></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for MathML mtext xmp in <${tag}>: ` + reparsed,
+      );
+    }
+
+    // noscript/iframe/noembed/noframes > math > mtext > #comment
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      const math = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
+      const mtext = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'mtext');
+      const comment = document.createComment(`</${tag}><img src=x onerror=alert(1)>`);
+      mtext.appendChild(comment);
+      math.appendChild(mtext);
+      fallbackEl.appendChild(math);
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><math><mtext><!--&lt;/${tag}><img src=x onerror=alert(1)>--></mtext></math></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for MathML mtext comment in <${tag}>: ` + reparsed,
+      );
+    }
+  }
+};
