@@ -1556,3 +1556,45 @@ exports.worksWithBase64DataImages = function () {
       'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII);"></div>'
   );
 };
+
+exports.processingInstructionClosingTagEscapedInNoscript = function () {
+  // A processing-instruction payload that begins with a fallback raw-content
+  // closing tag (e.g. `</noscript `) must have that prefix escaped during
+  // serialization. Otherwise the serialized output closes the <noscript>
+  // element early in the receiving browser (RAWTEXT) and the sibling
+  // <img onerror> is re-parsed as live HTML.
+  // Regression for angular/angular#70146: the fc7e40a (#70050) and e0779df
+  // (#70055) fixes escaped element/text/comment branches of serializeOne()
+  // but the PROCESSING_INSTRUCTION_NODE branch (case 7) never called
+  // fallbackRawContentTags(), and escapeProcessingInstructionContent()
+  // only escapes `>` (leaving `<` alone).
+  const document = domino.createDocument('<html><body></body></html>');
+  const noscript = document.createElement('noscript');
+  noscript.appendChild(document.createProcessingInstruction('x', '</noscript '));
+  const img = document.createElement('img');
+  img.setAttribute('src', 'x');
+  img.setAttribute('onerror', 'alert(1)');
+  noscript.appendChild(img);
+  document.body.appendChild(noscript);
+
+  const html = document.body.serialize();
+  html.should.equal(
+    '<noscript><?x &lt;/noscript ?><img src="x" onerror="alert(1)"></noscript>'
+  );
+  // The PI payload must not leak an unescaped closing-tag prefix.
+  html.should.not.containEql('<?x </noscript');
+};
+
+exports.processingInstructionClosingTagEscapedForAllFallbackElements = function () {
+  const document = domino.createDocument('');
+  for (const tagName of ['noscript', 'iframe', 'noembed', 'noframes']) {
+    const fallback = document.createElement(tagName);
+    fallback.appendChild(document.createProcessingInstruction('x', '</' + tagName + '/'));
+    document.body.appendChild(fallback);
+
+    const html = document.body.serialize();
+    html.should.containEql('<?x &lt;/' + tagName + '/?>');
+    html.should.not.containEql('<?x </' + tagName);
+    document.body.removeChild(fallback);
+  }
+};
