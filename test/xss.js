@@ -509,6 +509,27 @@ exports.badProcessingInstruction = function () {
   return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
 };
 
+exports.noscriptProcessingInstructionAncestorClosingTagEscaped = function () {
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  const pi = document.createProcessingInstruction('x', '</noscript ');
+  noscript.appendChild(pi);
+  const img = document.createElement('img');
+  img.setAttribute('src', 'x');
+  img.setAttribute('onerror', 'alert(1)');
+  noscript.appendChild(img);
+  document.body.appendChild(noscript);
+
+  document.body
+    .serialize()
+    .should.equal(
+      '<noscript><?x &lt;/noscript ?><img src="x" onerror="alert(1)"></noscript>',
+    );
+
+  const html = document.serialize();
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
 exports.verifyEscapeMatchingClosingTag = function () {
   const cases = [
     ['', 'style', ''], // no artifacts while processing an empty string
