@@ -869,3 +869,121 @@ exports.fallbackRawTextForeignContentEscapesAncestorClosingTag = async function 
     }
   }
 };
+
+exports.fallbackRawTextTemplateContentEscapesAncestorClosingTag = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const tag of fallbackTags) {
+    // noscript/iframe/noembed/noframes > template > xmp
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      const template = document.createElement('template');
+      const xmp = document.createElement('xmp');
+      xmp.textContent = `</${tag}><img src=x onerror=alert(1)>`;
+      template.content.appendChild(xmp);
+      fallbackEl.appendChild(template);
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><template><xmp>&lt;/${tag}><img src=x onerror=alert(1)></xmp></template></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for template xmp in <${tag}>: ` + reparsed,
+      );
+    }
+
+    // noscript/iframe/noembed/noframes > template > #comment
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      const template = document.createElement('template');
+      const comment = document.createComment(`</${tag}><img src=x onerror=alert(1)>`);
+      template.content.appendChild(comment);
+      fallbackEl.appendChild(template);
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><template><!--&lt;/${tag}><img src=x onerror=alert(1)>--></template></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for template comment in <${tag}>: ` + reparsed,
+      );
+    }
+  }
+};
+
+exports.fallbackRawTextProcessingInstructionEscapesAncestorClosingTag = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const tag of fallbackTags) {
+    // noscript/iframe/noembed/noframes > ProcessingInstruction
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      fallbackEl.appendChild(document.createProcessingInstruction('x', `</${tag}><img src=x onerror=alert(1)>`));
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><?x &lt;/${tag}&gt;<img src=x onerror=alert(1)&gt;?></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for PI in <${tag}>: ` + reparsed,
+      );
+    }
+
+    // noscript/iframe/noembed/noframes > template > ProcessingInstruction
+    {
+      const document = domino.createDocument('');
+      const fallbackEl = document.createElement(tag);
+      const template = document.createElement('template');
+      template.content.appendChild(document.createProcessingInstruction('x', `</${tag}><img src=x onerror=alert(1)>`));
+      fallbackEl.appendChild(template);
+      document.body.appendChild(fallbackEl);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><template><?x &lt;/${tag}&gt;<img src=x onerror=alert(1)&gt;?></template></${tag}>`,
+      );
+
+      const reparsedDoc = domino.createDocument('<body>' + serialized + '</body>');
+      reparsedDoc.getElementsByTagName('img').length.should.equal(0);
+
+      const reparsed = reparsedDoc.body.innerHTML;
+      reparsed.should.not.containEql(`</${tag}><img`);
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(
+        false,
+        `alert fired after normal HTML reparse for template PI in <${tag}>: ` + reparsed,
+      );
+    }
+  }
+};
+

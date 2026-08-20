@@ -1556,3 +1556,72 @@ exports.worksWithBase64DataImages = function () {
       'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII);"></div>'
   );
 };
+
+exports.processingInstructionClosingTagEscapedInNoscript = function () {
+  const document = domino.createDocument('<html><body></body></html>');
+  const noscript = document.createElement('noscript');
+  noscript.appendChild(document.createProcessingInstruction('x', '</noscript '));
+  const img = document.createElement('img');
+  img.setAttribute('src', 'x');
+  img.setAttribute('onerror', 'alert(1)');
+  noscript.appendChild(img);
+  document.body.appendChild(noscript);
+
+  const html = document.body.serialize();
+  html.should.equal(
+    '<noscript><?x &lt;/noscript ?><img src="x" onerror="alert(1)"></noscript>'
+  );
+  html.should.not.containEql('<?x </noscript');
+};
+
+exports.processingInstructionClosingTagEscapedForAllFallbackElements = function () {
+  const document = domino.createDocument('');
+  for (const tagName of ['noscript', 'iframe', 'noembed', 'noframes']) {
+    const fallback = document.createElement(tagName);
+    fallback.appendChild(document.createProcessingInstruction('x', '</' + tagName + '/'));
+    document.body.appendChild(fallback);
+
+    const html = document.body.serialize();
+    html.should.containEql('<?x &lt;/' + tagName + '/?>');
+    html.should.not.containEql('<?x </' + tagName);
+    document.body.removeChild(fallback);
+  }
+};
+
+exports.templateContentInFallbackElementsEscaped = function () {
+  const document = domino.createDocument('');
+  for (const tagName of ['noscript', 'iframe', 'noembed', 'noframes']) {
+    const fallback = document.createElement(tagName);
+    const template = document.createElement('template');
+    const xmp = document.createElement('xmp');
+    xmp.textContent = '</' + tagName + '><img src=x onerror=alert(1)>';
+    template.content.appendChild(xmp);
+    fallback.appendChild(template);
+    document.body.appendChild(fallback);
+
+    const html = document.body.serialize();
+    html.should.equal(
+      '<' + tagName + '><template><xmp>&lt;/' + tagName + '><img src=x onerror=alert(1)></xmp></template></' + tagName + '>'
+    );
+    document.body.removeChild(fallback);
+  }
+};
+
+exports.clonedTemplateContentMaintainsHostReference = function () {
+  const document = domino.createDocument('');
+  const fallback = document.createElement('noscript');
+  const template = document.createElement('template');
+  const xmp = document.createElement('xmp');
+  xmp.textContent = '</noscript><img src=x onerror=alert(1)>';
+  template.content.appendChild(xmp);
+
+  const clonedTemplate = template.cloneNode(true);
+  fallback.appendChild(clonedTemplate);
+  document.body.appendChild(fallback);
+
+  const html = document.body.serialize();
+  html.should.equal(
+    '<noscript><template><xmp>&lt;/noscript><img src=x onerror=alert(1)></xmp></template></noscript>'
+  );
+};
+
