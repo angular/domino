@@ -572,6 +572,20 @@ exports.verifyEscapeClosingCommentTag = function () {
     ['<!--a--!> <!--b--!>', '<!--a--!&gt; <!--b--!&gt;'],
     ['<!--a--> <!--b-->', '<!--a--&gt; <!--b--&gt;'],
     ['<!--a--&lt; <!--b--&lt;', '<!--a--&lt; <!--b--&lt;'],
+
+    // A leading `>` or `->` abruptly closes an empty comment.
+    ['>', '&gt;'],
+    ['->', '-&gt;'],
+    ['><script>alert(1)</script>', '&gt;<script>alert(1)</script>'],
+    ['-><script>alert(1)</script>', '-&gt;<script>alert(1)</script>'],
+    ['->a-->b', '-&gt;a--&gt;b'],
+    ['--->', '---&gt;'],
+
+    // A `>` that does not start the content does not close the comment.
+    ['a>', 'a>'],
+    ['-a>', '-a>'],
+    [' >', ' >'],
+    ['a->b', 'a->b'],
   ];
   for (const [rawContent, expected] of cases) {
     NodeUtils.ɵescapeClosingCommentTag(rawContent).should.equal(expected);
@@ -987,3 +1001,79 @@ exports.fallbackRawTextProcessingInstructionEscapesAncestorClosingTag = async fu
   }
 };
 
+exports.commentNodeEscapesAbruptClosingComment = async function () {
+  // A comment content that starts with `>` or `->` is closed by the parser
+  // right away (the "abrupt-closing-of-empty-comment" parse error), so the rest
+  // of the content is parsed as live markup. An inert `Comment` node would
+  // therefore turn into an XSS vector once an SSR response is parsed by the
+  // browser, unless the leading `>` is escaped.
+  const cases = [
+    {
+      data: '><img src=x onerror="alert(\'abrupt_comment\')">',
+      expected: '<!--&gt;<img src=x onerror="alert(\'abrupt_comment\')">-->',
+    },
+    {
+      data: '-><img src=x onerror="alert(\'abrupt_comment_dash\')">',
+      expected: '<!---&gt;<img src=x onerror="alert(\'abrupt_comment_dash\')">-->',
+    },
+    {
+      data: '></div><script>alert("abrupt_comment_markup")//</script>',
+      expected: '<!--&gt;</div><script>alert("abrupt_comment_markup")//</script>-->',
+    },
+  ];
+
+  for (const testCase of cases) {
+    const document = domino.createDocument('');
+    document.body.appendChild(document.createComment(testCase.data));
+
+    const serialized = document.body.serialize();
+    serialized.should.equal(testCase.expected);
+
+    // The comment stays a single, inert comment node across the round trip.
+    const reparsedDocument = domino.createDocument('<body>' + serialized + '</body>');
+    reparsedDocument.getElementsByTagName('img').length.should.equal(0);
+    reparsedDocument.getElementsByTagName('script').length.should.equal(0);
+    reparsedDocument.body.childNodes.length.should.equal(1);
+    reparsedDocument.body.childNodes[0].nodeType.should.equal(8 /* COMMENT_NODE */);
+
+    const html = document.serialize();
+    const alerted = await alertFired(html);
+    alerted.should.equal(false, 'alert fired for: ' + html);
+  }
+};
+
+exports.commentNodePreservesNonClosingAngleBrackets = function () {
+  // Only a `>` that starts the content closes the comment, everything else
+  // must be left untouched to keep the serialized comment readable.
+  const document = domino.createDocument('');
+  document.body.appendChild(document.createComment(' a > b -> c '));
+
+  document.body.serialize().should.equal('<!-- a > b -> c -->');
+};
+
+exports.fallbackRawTextCommentNodeEscapesAbruptClosingComment = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const tag of fallbackTags) {
+    // An abrupt comment close combined with an ancestor closing tag has to
+    // escape both, otherwise the payload breaks out of the comment and out of
+    // the fallback raw-content element.
+    const document = domino.createDocument('');
+    const el = document.createElement(tag);
+    el.appendChild(document.createComment(`></${tag}><img src=x onerror=alert(1)>`));
+    document.body.appendChild(el);
+
+    const serialized = document.body.serialize();
+    serialized.should.equal(`<${tag}><!--&gt;&lt;/${tag}><img src=x onerror=alert(1)>--></${tag}>`);
+
+    const reparsedDocument = domino.createDocument('<body>' + serialized + '</body>');
+    reparsedDocument.getElementsByTagName('img').length.should.equal(0);
+
+    const reparsed = reparsedDocument.body.innerHTML;
+    const alerted = await alertFired(reparsed);
+    alerted.should.equal(
+      false,
+      `alert fired after normal HTML reparse for abrupt comment in <${tag}>: ` + reparsed,
+    );
+  }
+};
