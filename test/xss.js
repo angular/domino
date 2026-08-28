@@ -105,6 +105,197 @@ exports.fp170_37 = function () {
   );
 };
 
+exports.htmlStyleTextMovedIntoForeignContentIsEscaped = function () {
+  const SVG = 'http://www.w3.org/2000/svg';
+  const payload =
+    '--literal:"&copy;\u00A0";/*<img><script>alert("foreign-style-xss")</script>*/';
+  const document = domino.createDocument('');
+  const svg = document.createElementNS(SVG, 'svg');
+  const group = document.createElementNS(SVG, 'g');
+  const wrapper = document.createElement('g');
+  const style = document.createElement('style');
+  const marker = document.createElement('span');
+  style.textContent = payload;
+  marker.textContent = 'kept';
+  style.appendChild(marker);
+  wrapper.appendChild(style);
+  svg.appendChild(group);
+  document.body.appendChild(svg);
+  document.body.appendChild(wrapper);
+  document.serialize().should.containEql('<style>' + payload);
+  group.appendChild(wrapper);
+
+  const html = document.serialize();
+  html.should.containEql(
+    '--literal:"&amp;copy;&nbsp;";/*&lt;img&gt;&lt;script&gt;',
+  );
+  html.should.containEql('&lt;/script&gt;*/');
+  html.should.containEql('<span>kept</span>');
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
+exports.foreignContextCacheDoesNotCrossDocuments = function () {
+  const SVG = 'http://www.w3.org/2000/svg';
+  const payload = '{"x":"<img src=x onerror=alert(42)>"}';
+  const first = domino.createDocument('');
+  const wrapper = first.createElement('a');
+  const script = first.createElement('script');
+  script.type = 'application/json';
+  script.textContent = payload;
+  wrapper.appendChild(script);
+  first.body.appendChild(wrapper);
+  first.serialize().should.containEql(payload);
+
+  const second = domino.createDocument('');
+  const svg = second.createElementNS(SVG, 'svg');
+  second.body.appendChild(svg);
+  svg.appendChild(wrapper);
+
+  const html = second.serialize();
+  html.should.containEql('{"x":"&lt;img src=x onerror=alert(42)&gt;"}');
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
+exports.foreignContextCacheSkipsUntrackedDocuments = function () {
+  const payload = '<img src=x onerror=alert(713)>';
+  const document = domino.createDocument(
+    '<main><a><style></style></a></main><svg><g></g></svg>',
+  ).cloneNode(true);
+  const style = document.querySelector('style');
+  const wrapper = style.parentNode;
+  style.textContent = payload;
+  document.modclock.should.equal(0);
+  style.outerHTML.should.containEql('<style>' + payload + '</style>');
+  document.querySelector('svg g').appendChild(wrapper);
+
+  const html = document.serialize();
+  html.should.containEql(
+    '<style>&lt;img src=x onerror=alert(713)&gt;</style>',
+  );
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
+const HTML_ELEMENT = null;
+const SVG = 'http://www.w3.org/2000/svg';
+const MATHML = 'http://www.w3.org/1998/Math/MathML';
+const styleCss =
+  '@media (width < 600px) { svg > g { --label: "&"; } }' +
+  '/*<img><script>alert(1)</script>*/';
+const serializedStyleCss =
+  '@media (width &lt; 600px) { svg &gt; g { --label: "&amp;"; } }' +
+  '/*&lt;img&gt;&lt;script&gt;alert(1)&lt;/script&gt;*/';
+
+function createStyleDocument(ancestors) {
+  const document = domino.createDocument('');
+  let parent = document.body;
+  for (const [namespace, name, attributes = {}] of ancestors) {
+    const element = namespace ?
+      document.createElementNS(namespace, name) : document.createElement(name);
+    for (const attribute in attributes) {
+      element.setAttribute(attribute, attributes[attribute]);
+    }
+    parent.appendChild(element);
+    parent = element;
+  }
+
+  const style = document.createElement('style');
+  style.textContent = styleCss;
+  parent.appendChild(style);
+  return document;
+}
+
+function assertStyleSerialization(ancestors, expected) {
+  const document = createStyleDocument(ancestors);
+  document.body.serialize().should.containEql(
+    '<style>' + expected + '</style>',
+  );
+  return document;
+}
+
+exports.rawContentIsEscapedInForeignContent = function () {
+  const cases = [
+    [[SVG, 'svg']],
+    [[SVG, 'svg'], [HTML_ELEMENT, 'g']],
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [HTML_ELEMENT, 'svg']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'mtext'], [HTML_ELEMENT, 'mglyph']],
+    [[MATHML, 'math'],
+      [MATHML, 'annotation-xml', { encoding: 'application/xml' }]],
+  ];
+  for (const ancestors of cases) {
+    assertStyleSerialization(ancestors, serializedStyleCss);
+  }
+};
+
+exports.rawContentRemainsRawAtHtmlIntegrationPoints = function () {
+  const cases = [
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [HTML_ELEMENT, 'div']],
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [SVG, 'a']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'mtext']],
+  ];
+  for (const ancestors of cases) {
+    assertStyleSerialization(ancestors, styleCss);
+  }
+};
+
+exports.annotationXmlEncodingChangeUpdatesRawContentContext = function () {
+  const document = assertStyleSerialization(
+    [[MATHML, 'math'],
+      [MATHML, 'annotation-xml', { ENCODING: 'TEXT/HTML' }],
+      [HTML_ELEMENT, 'div']],
+    styleCss,
+  );
+  document.querySelector('annotation-xml')
+    .setAttribute('ENCODING', 'application/xml');
+  document.body.serialize().should.containEql(
+    '<style>' + serializedStyleCss + '</style>',
+  );
+};
+
+exports.detachedRawContentUsesSerializedRootContext = function () {
+  for (const [namespace, name] of [
+    [SVG, 'g'],
+    [HTML_ELEMENT, 'svg'],
+    ['http://www.w3.org/1999/xhtml', 'SvG'],
+  ]) {
+    const document = domino.createDocument('');
+    const root = namespace ?
+      document.createElementNS(namespace, name) : document.createElement(name);
+    const style = document.createElement('style');
+    style.textContent = styleCss;
+    root.appendChild(style);
+    root.outerHTML
+      .should.containEql('<style>' + serializedStyleCss + '</style>');
+  }
+};
+
+exports.serializedForeignStylePreservesCssSemantics = async function () {
+  const page = await browser.newPage();
+  await page.setContent(
+    '<svg><style>' + serializedStyleCss + '</style></svg>',
+  );
+  (await page.$eval('style', (element) => element.textContent))
+    .should.equal(styleCss);
+  await page.close();
+};
+
+exports.plaintextInForeignObjectKeepsParserFixture = function () {
+  const document = domino.createDocument(
+    '<svg><foreignObject><div>foo</div><plaintext>' +
+    '</foreignObject></svg><div>bar</div>',
+  );
+  document.serialize().should.equal(
+    '<html><head></head><body>' +
+    '<svg><foreignObject><div>foo</div><plaintext>' +
+    '</foreignObject></svg><div>bar</div></plaintext>' +
+    '</foreignObject></svg></body></html>',
+  );
+  document.body.innerHTML.should.equal(
+    '<svg><foreignObject><div>foo</div><plaintext>' +
+    '</foreignObject></svg><div>bar</div></plaintext>' +
+    '</foreignObject></svg>',
+  );
+};
+
 exports.escapeAngleBracketsInDivAttr = function () {
   var document = domino.createDocument(
     `<div>You don't have JS! Click<a href="#" title="Search for </div><script>alert(1)</script> without JS">here</a> to go to the no-js website.</div>`,
