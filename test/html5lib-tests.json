@@ -43362,7 +43362,7 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noscript><!--<noscript></noscript></head><body>--&gt;</body></html>",
+        "html": "<!DOCTYPE html><html><head><noscript>&lt;!--&lt;noscript&gt;</noscript></head><body>--&gt;</body></html>",
         "noQuirksBodyHtml": "<noscript><!--<noscript></noscript>--></noscript>"
       }
     },
@@ -43467,7 +43467,7 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noscript><!--</noscript></head><body>X<noscript>--&gt;</noscript></body></html>",
+        "html": "<!DOCTYPE html><html><head><noscript>&lt;!--</noscript></head><body>X<noscript>--&gt;</noscript></body></html>",
         "noQuirksBodyHtml": "<noscript><!--</noscript>X<noscript>--></noscript>"
       }
     },
@@ -43672,8 +43672,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noframes><!--<noframes></noframes></head><body>--&gt;</body></html>",
-        "noQuirksBodyHtml": "<noframes><!--<noframes></noframes>--&gt;"
+        "html": "<!DOCTYPE html><html><head><noframes>&lt;!--&lt;noframes&gt;</noframes></head><body>--&gt;</body></html>",
+        "noQuirksBodyHtml": "<noframes>&lt;!--&lt;noframes&gt;</noframes>--&gt;"
       }
     },
     {
@@ -43717,8 +43717,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head><noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes></head><body></body></html>",
-        "noQuirksBodyHtml": "<noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes>"
+        "html": "<!DOCTYPE html><html><head><noframes>&lt;body&gt;&lt;script&gt;&lt;!--...&lt;/script&gt;&lt;/body&gt;</noframes></head><body></body></html>",
+        "noQuirksBodyHtml": "<noframes>&lt;body&gt;&lt;script&gt;&lt;!--...&lt;/script&gt;&lt;/body&gt;</noframes>"
       }
     },
     {
@@ -43955,8 +43955,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><iframe><!--<iframe></iframe>--&gt;</body></html>",
-        "noQuirksBodyHtml": "<iframe><!--<iframe></iframe>--&gt;"
+        "html": "<!DOCTYPE html><html><head></head><body><iframe>&lt;!--&lt;iframe&gt;</iframe>--&gt;</body></html>",
+        "noQuirksBodyHtml": "<iframe>&lt;!--&lt;iframe&gt;</iframe>--&gt;"
       }
     },
     {
@@ -44000,8 +44000,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><iframe>...<!--X->...<!--/X->...</iframe></body></html>",
-        "noQuirksBodyHtml": "<iframe>...<!--X->...<!--/X->...</iframe>"
+        "html": "<!DOCTYPE html><html><head></head><body><iframe>...&lt;!--X-&gt;...&lt;!--/X-&gt;...</iframe></body></html>",
+        "noQuirksBodyHtml": "<iframe>...&lt;!--X-&gt;...&lt;!--/X-&gt;...</iframe>"
       }
     },
     {
@@ -44104,8 +44104,8 @@
             ]
           }
         ],
-        "html": "<!DOCTYPE html><html><head></head><body><noembed><!--<noembed></noembed>--&gt;</body></html>",
-        "noQuirksBodyHtml": "<noembed><!--<noembed></noembed>--&gt;"
+        "html": "<!DOCTYPE html><html><head></head><body><noembed>&lt;!--&lt;noembed&gt;</noembed>--&gt;</body></html>",
+        "noQuirksBodyHtml": "<noembed>&lt;!--&lt;noembed&gt;</noembed>--&gt;"
       }
     },
     {
@@ -47786,7 +47786,7 @@
             ]
           }
         ],
-        "html": "<html><head><noscript><!--<noscript></noscript></head><body>--&gt;</body></html>",
+        "html": "<html><head><noscript>&lt;!--&lt;noscript&gt;</noscript></head><body>--&gt;</body></html>",
         "noQuirksBodyHtml": "<noscript><!--<noscript></noscript>--></noscript>"
       }
     },
@@ -47887,7 +47887,7 @@
             ]
           }
         ],
-        "html": "<html><head><noscript><!--</noscript></head><body>X<noscript>--&gt;</noscript></body></html>",
+        "html": "<html><head><noscript>&lt;!--</noscript></head><body>X<noscript>--&gt;</noscript></body></html>",
         "noQuirksBodyHtml": "<noscript><!--</noscript>X<noscript>--></noscript>"
       }
     },
@@ -48082,8 +48082,8 @@
             ]
           }
         ],
-        "html": "<html><head><noframes><!--<noframes></noframes></head><body>--&gt;</body></html>",
-        "noQuirksBodyHtml": "<noframes><!--<noframes></noframes>--&gt;"
+        "html": "<html><head><noframes>&lt;!--&lt;noframes&gt;</noframes></head><body>--&gt;</body></html>",
+        "noQuirksBodyHtml": "<noframes>&lt;!--&lt;noframes&gt;</noframes>--&gt;"
       }
     },
     {
@@ -48125,8 +48125,8 @@
             ]
           }
         ],
-        "html": "<html><head><noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes></head><body></body></html>",
-        "noQuirksBodyHtml": "<noframes>&lt;body&gt;&lt;script&gt;<!--...</script></body></noframes>"
+        "html": "<html><head><noframes>&lt;body&gt;&lt;script&gt;&lt;!--...&lt;/script&gt;&lt;/body&gt;</noframes></head><body></body></html>",
+        "noQuirksBodyHtml": "<noframes>&lt;body&gt;&lt;script&gt;&lt;!--...&lt;/script&gt;&lt;/body&gt;</noframes>"
       }
     },
     {
@@ -48265,8 +48265,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><iframe><!--<iframe></iframe>--&gt;</body></html>",
-        "noQuirksBodyHtml": "<iframe><!--<iframe></iframe>--&gt;"
+        "html": "<html><head></head><body><iframe>&lt;!--&lt;iframe&gt;</iframe>--&gt;</body></html>",
+        "noQuirksBodyHtml": "<iframe>&lt;!--&lt;iframe&gt;</iframe>--&gt;"
       }
     },
     {
@@ -48308,8 +48308,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><iframe>...<!--X->...<!--/X->...</iframe></body></html>",
-        "noQuirksBodyHtml": "<iframe>...<!--X->...<!--/X->...</iframe>"
+        "html": "<html><head></head><body><iframe>...&lt;!--X-&gt;...&lt;!--/X-&gt;...</iframe></body></html>",
+        "noQuirksBodyHtml": "<iframe>...&lt;!--X-&gt;...&lt;!--/X-&gt;...</iframe>"
       }
     },
     {
@@ -48406,8 +48406,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><noembed><!--<noembed></noembed>--&gt;</body></html>",
-        "noQuirksBodyHtml": "<noembed><!--<noembed></noembed>--&gt;"
+        "html": "<html><head></head><body><noembed>&lt;!--&lt;noembed&gt;</noembed>--&gt;</body></html>",
+        "noQuirksBodyHtml": "<noembed>&lt;!--&lt;noembed&gt;</noembed>--&gt;"
       }
     },
     {
@@ -67339,8 +67339,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><iframe> <!--- </iframe>-&gt;x --&gt; x</body></html>",
-        "noQuirksBodyHtml": "<iframe> <!--- </iframe>-&gt;x --&gt; x"
+        "html": "<html><head></head><body><iframe> &lt;!--- </iframe>-&gt;x --&gt; x</body></html>",
+        "noQuirksBodyHtml": "<iframe> &lt;!--- </iframe>-&gt;x --&gt; x"
       }
     },
     {
@@ -67807,7 +67807,7 @@
             ]
           }
         ],
-        "html": "<html><head><noscript><!--</noscript></head><body>--&gt;</body></html>",
+        "html": "<html><head><noscript>&lt;!--</noscript></head><body>--&gt;</body></html>",
         "noQuirksBodyHtml": "<noscript><!--</noscript>--></noscript>"
       }
     },
