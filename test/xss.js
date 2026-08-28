@@ -1077,3 +1077,164 @@ exports.fallbackRawTextCommentNodeEscapesAbruptClosingComment = async function (
     );
   }
 };
+
+exports.fallbackRawTextEscapesClosingTagSplitAcrossTextNodes = async function () {
+  // Neither node below contains `</noscript`, but their serialized bytes are
+  // adjacent and reconstruct it, which terminates the <noscript> and turns the
+  // payload into live markup. Angular SSR builds this shape from a `@for` over
+  // plain text interpolation.
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  noscript.appendChild(document.createTextNode('<!--</nosc'));
+  noscript.appendChild(
+    document.createTextNode(`ript <!--gate><script>alert('split_text_nodes')</script>`),
+  );
+  document.body.appendChild(noscript);
+
+  const html = document.body.serialize();
+  html.should.equal(
+    `<noscript><!--&lt;/noscript <!--gate><script>alert('split_text_nodes')</script></noscript>`,
+  );
+  html.toLowerCase().should.not.containEql('</noscript ');
+
+  const reparsedDocument = domino.createDocument('<body>' + html + '</body>');
+  reparsedDocument.getElementsByTagName('script').length.should.equal(0);
+
+  const alerted = await alertFired(document.serialize());
+  alerted.should.equal(false, 'alert fired for: ' + html);
+
+  // The same shape is reachable from plain DOM APIs.
+  const splitDocument = domino.createDocument('');
+  const splitNoscript = splitDocument.createElement('noscript');
+  const text = splitDocument.createTextNode(
+    `<!--</noscript <!--gate><script>alert('split_text_nodes')</script>`,
+  );
+  splitNoscript.appendChild(text);
+  splitDocument.body.appendChild(splitNoscript);
+  text.splitText('<!--</nosc'.length);
+
+  splitNoscript.childNodes.length.should.equal(2);
+  splitDocument.body.serialize().should.equal(html);
+};
+
+exports.fallbackRawTextEscapesEveryClosingTagSplitAcrossTextNodes = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const tag of fallbackTags) {
+    // The leading `<!--` picks the comment-preserving branch, the one that
+    // emits raw bytes. Cut it everywhere, so no split position can smuggle the
+    // closing tag through a node boundary.
+    const payload = `<!--</${tag} <!--gate><script>alert('${tag}_split')</script>`;
+    for (let cut = 0; cut <= payload.length; cut++) {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      el.appendChild(document.createTextNode(payload.slice(0, cut)));
+      el.appendChild(document.createTextNode(payload.slice(cut)));
+      document.body.appendChild(el);
+
+      const html = document.body.serialize();
+      // These are parsed in RAWTEXT state, so the element ends at the first
+      // `</tag`. It must never be emitted.
+      el.serialize().toLowerCase().should.not.containEql(`</${tag}`);
+      html.should.equal(
+        `<${tag}><!--&lt;/${tag} <!--gate><script>alert('${tag}_split')</script></${tag}>`,
+      );
+
+      const reparsedDocument = domino.createDocument('<body>' + html + '</body>');
+      reparsedDocument.getElementsByTagName('script').length.should.equal(0);
+    }
+
+    // Three adjacent text nodes cutting the closing tag twice.
+    const document = domino.createDocument('');
+    const el = document.createElement(tag);
+    el.appendChild(document.createTextNode(`<!--</${tag.slice(0, 2)}`));
+    el.appendChild(document.createTextNode(tag.slice(2)));
+    el.appendChild(document.createTextNode(` <!--gate><script>alert('${tag}_split')</script>`));
+    document.body.appendChild(el);
+
+    const html = document.body.serialize();
+    el.serialize().toLowerCase().should.not.containEql(`</${tag}`);
+
+    const alerted = await alertFired(document.serialize());
+    alerted.should.equal(false, `alert fired for split text nodes in <${tag}>: ` + html);
+  }
+};
+
+exports.fallbackRawTextEscapesAncestorClosingTagSplitAcrossTextNodes = async function () {
+  const fallbackTags = ['noscript', 'iframe', 'noembed', 'noframes'];
+
+  for (const ancestorTag of fallbackTags) {
+    for (const tag of fallbackTags) {
+      if (tag === ancestorTag) continue;
+
+      // The split closing tag targets the ancestor, so the payload has to
+      // survive the ancestor traversal too.
+      const payload = `<!--</${ancestorTag} <!--gate><script>alert('ancestor_split')</script>`;
+      for (let cut = 0; cut <= payload.length; cut++) {
+        const document = domino.createDocument('');
+        const ancestor = document.createElement(ancestorTag);
+        const el = document.createElement(tag);
+        el.appendChild(document.createTextNode(payload.slice(0, cut)));
+        el.appendChild(document.createTextNode(payload.slice(cut)));
+        ancestor.appendChild(el);
+        document.body.appendChild(ancestor);
+
+        // The inner content must carry a closing tag for neither element.
+        const content = el.serialize().toLowerCase();
+        content.should.not.containEql(`</${ancestorTag}`);
+        content.should.not.containEql(`</${tag}`);
+        ancestor.serialize().toLowerCase().should.not.containEql(`</${ancestorTag}`);
+      }
+    }
+  }
+};
+
+exports.fallbackRawTextDetectsCommentEndSplitAcrossTextNodes = function () {
+  // The comment delimiters can be split too. Node by node, `<!--x--` reads as
+  // an unterminated comment, so the serialized comment never closed and
+  // swallowed the rest of the response. The end has to be seen where the
+  // parser sees it.
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  noscript.appendChild(document.createTextNode('<!--x--'));
+  noscript.appendChild(document.createTextNode('><script>alert("comment_end_split")//</script>'));
+  document.body.appendChild(noscript);
+
+  const html = document.body.serialize();
+  html.should.equal(
+    '<noscript><!--x-->&lt;script&gt;alert("comment_end_split")//&lt;/script&gt;</noscript>',
+  );
+
+  const reparsedDocument = domino.createDocument('<body>' + html + '</body>');
+  reparsedDocument.getElementsByTagName('script').length.should.equal(0);
+  reparsedDocument.body.firstChild.childNodes.length.should.equal(2);
+  reparsedDocument.body.firstChild.childNodes[0].nodeType.should.equal(8 /* COMMENT_NODE */);
+};
+
+exports.fallbackRawTextPreservesCommentSyntaxSplitAcrossTextNodes = function () {
+  // Guard against over-escaping: a legitimate comment split across
+  // interpolated text nodes still round trips as one comment.
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  noscript.appendChild(document.createTextNode('<!-- fall'));
+  noscript.appendChild(document.createTextNode('back comment -->'));
+  document.body.appendChild(noscript);
+
+  document.body.serialize().should.equal('<noscript><!-- fallback comment --></noscript>');
+};
+
+exports.fallbackRawTextEmitsEveryAdjacentTextNodeExactlyOnce = function () {
+  // The run is escaped in one go, so check that nothing is dropped or emitted
+  // twice, including around a sibling that interrupts it.
+  const document = domino.createDocument('');
+  const noscript = document.createElement('noscript');
+  noscript.appendChild(document.createTextNode('a'));
+  noscript.appendChild(document.createTextNode('b'));
+  noscript.appendChild(document.createTextNode('c'));
+  noscript.appendChild(document.createComment('d'));
+  noscript.appendChild(document.createTextNode('e'));
+  noscript.appendChild(document.createTextNode('f'));
+  document.body.appendChild(noscript);
+
+  document.body.serialize().should.equal('<noscript>abc<!--d-->ef</noscript>');
+};
