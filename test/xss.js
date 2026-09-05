@@ -1077,3 +1077,89 @@ exports.fallbackRawTextCommentNodeEscapesAbruptClosingComment = async function (
     );
   }
 };
+
+// HTML's *escapable raw text* elements (RCDATA): <textarea> and <title>. Their
+// text content is escaped for character references, but the element is still
+// terminated only by its own closing tag -- so anything we emit verbatim
+// underneath one of them must have that closing tag escaped, exactly as for the
+// fallback raw-content elements above.
+exports.escapableRawTextCommentNodeEscapesAncestorClosingTag = async function () {
+  const escapableTags = ['textarea', 'title'];
+
+  for (const tag of escapableTags) {
+    // Comment node directly inside escapable raw-text element
+    {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      const comment = document.createComment(`</${tag}><img src=x onerror=alert(1)>`);
+      el.appendChild(comment);
+      document.body.appendChild(el);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(`<${tag}><!--&lt;/${tag}><img src=x onerror=alert(1)>--></${tag}>`);
+
+      const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(false, `alert fired after normal HTML reparse for comment in <${tag}>: ` + reparsed);
+    }
+
+    // Comment node inside a child element (descendant) of escapable raw-text element
+    {
+      const document = domino.createDocument('');
+      const el = document.createElement(tag);
+      const div = document.createElement('div');
+      const comment = document.createComment(`</${tag}><img src=x onerror=alert(1)>`);
+      div.appendChild(comment);
+      el.appendChild(div);
+      document.body.appendChild(el);
+
+      const serialized = document.body.serialize();
+      serialized.should.equal(
+        `<${tag}><div><!--&lt;/${tag}><img src=x onerror=alert(1)>--></div></${tag}>`);
+
+      const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+      const alerted = await alertFired(reparsed);
+      alerted.should.equal(false, `alert fired after normal HTML reparse for descendant comment in <${tag}>: ` + reparsed);
+    }
+  }
+};
+
+exports.escapableRawTextProcessingInstructionEscapesAncestorClosingTag = async function () {
+  const escapableTags = ['textarea', 'title'];
+
+  for (const tag of escapableTags) {
+    const document = domino.createDocument('');
+    const el = document.createElement(tag);
+    const pi = document.createProcessingInstruction('x', `</${tag}><img src=x onerror=alert(1)>`);
+    el.appendChild(pi);
+    document.body.appendChild(el);
+
+    const serialized = document.body.serialize();
+    serialized.should.containEql(`&lt;/${tag}`);
+    serialized.should.not.containEql(`</${tag}><img`);
+
+    const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+    const alerted = await alertFired(reparsed);
+    alerted.should.equal(false, `alert fired after normal HTML reparse for PI in <${tag}>: ` + reparsed);
+  }
+};
+
+exports.escapableRawTextNestedRawTextElementsEscapeAncestorClosingTag = async function () {
+  const escapableTags = ['textarea', 'title'];
+
+  for (const tag of escapableTags) {
+    const document = domino.createDocument('');
+    const el = document.createElement(tag);
+    const style = document.createElement('style');
+    style.appendChild(document.createTextNode(`</${tag}><img src=x onerror=alert(1)>`));
+    el.appendChild(style);
+    document.body.appendChild(el);
+
+    const serialized = document.body.serialize();
+    serialized.should.not.containEql(`</${tag}><img`);
+
+    const reparsed = domino.createDocument('<body>' + serialized + '</body>').body.innerHTML;
+    const alerted = await alertFired(reparsed);
+    alerted.should.equal(false, `alert fired after normal HTML reparse for nested <style> in <${tag}>: ` + reparsed);
+  }
+};
