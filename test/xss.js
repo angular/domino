@@ -1001,6 +1001,70 @@ exports.fallbackRawTextProcessingInstructionEscapesAncestorClosingTag = async fu
   }
 };
 
+exports.fallbackRawTextProcessingInstructionUsesSerializedAncestorName = async function () {
+  const cases = [
+    {
+      label: 'SVG noembed',
+      namespace: 'http://www.w3.org/2000/svg',
+      qualifiedName: 'noembed',
+      serializedName: 'noembed',
+    },
+    {
+      label: 'MathML noembed',
+      namespace: 'http://www.w3.org/1998/Math/MathML',
+      qualifiedName: 'noembed',
+      serializedName: 'noembed',
+    },
+    {
+      label: 'SVG iframe',
+      namespace: 'http://www.w3.org/2000/svg',
+      qualifiedName: 'iframe',
+      serializedName: 'iframe',
+    },
+    {
+      label: 'qualified HTML iframe',
+      namespace: 'http://www.w3.org/1999/xhtml',
+      qualifiedName: 'x:iframe',
+      serializedName: 'iframe',
+    },
+  ];
+
+  for (const testCase of cases) {
+    const document = domino.createDocument('');
+    const fallbackEl = document.createElementNS(
+      testCase.namespace,
+      testCase.qualifiedName,
+    );
+
+    fallbackEl.appendChild(
+      document.createProcessingInstruction(
+        'x',
+        `</${testCase.serializedName} `,
+      ),
+    );
+
+    const img = document.createElement('img');
+    img.setAttribute('src', 'x');
+    img.setAttribute('onerror', 'alert(1)');
+    fallbackEl.appendChild(img);
+
+    document.body.appendChild(fallbackEl);
+
+    const serialized = document.body.serialize();
+
+    serialized.should.containEql(
+      `<?x &lt;/${testCase.serializedName} ?>`,
+      `${testCase.label}: matching fallback closing tag was not escaped: ${serialized}`,
+    );
+
+    const alerted = await alertFired(serialized);
+    alerted.should.equal(
+      false,
+      `alert fired for PI under ${testCase.label}: ${serialized}`,
+    );
+  }
+};
+
 exports.commentNodeEscapesAbruptClosingComment = async function () {
   // A comment content that starts with `>` or `->` is closed by the parser
   // right away (the "abrupt-closing-of-empty-comment" parse error), so the rest
