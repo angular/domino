@@ -1287,6 +1287,146 @@ exports.gh121 = function() {
   div.matches('[class~=a]').should.be.true();
 };
 
+function isolatedSelectorTest(test) {
+  return function() {
+    // Mocha's timer cannot interrupt a synchronous selector loop.
+    var script = '(' + test.toString() + ')(require("assert"), require(process.argv[1]))';
+    require('child_process').execFileSync(process.execPath, [
+      '-e', script, require.resolve('../lib')
+    ], {
+      timeout: 5000,
+      killSignal: 'SIGKILL',
+      stdio: 'pipe'
+    });
+  };
+}
+
+exports.emptyAttributeTokenSelectors = {
+  'empty tokens never match existing or missing attributes': isolatedSelectorTest(function(assert, domino) {
+    var attributeNames = ['itemprop', 'class', 'data-tokens'];
+    var attributeValues = [
+      null,
+      '',
+      ' ',
+      'name',
+      ' name',
+      'name ',
+      'name  description',
+      'name description',
+      '\t\n\f\r'
+    ];
+    var emptyTokens = ['""', "''", '"" i'];
+
+    attributeNames.forEach(function(attributeName) {
+      attributeValues.forEach(function(value) {
+        var document = domino.createDocument('<meta>');
+        var meta = document.head.firstChild;
+        if (value !== null) meta.setAttribute(attributeName, value);
+
+        emptyTokens.forEach(function(token) {
+          var selector = 'meta[' + attributeName + '~=' + token + ']';
+          var context = selector + ' with ' + attributeName + '=' + JSON.stringify(value);
+
+          [document, document.head].forEach(function(root) {
+            var queryContext = root.nodeName + ': ' + context;
+            assert.strictEqual(root.querySelectorAll(selector).length, 0, queryContext);
+            // Preserve Domino's existing no-match return value.
+            assert.strictEqual(root.querySelector(selector), undefined, queryContext);
+          });
+          assert.strictEqual(meta.matches(selector), false, context);
+          assert.strictEqual(meta.closest(selector), null, context);
+          assert.strictEqual(document.querySelector('meta'), meta, context);
+        });
+      });
+    });
+  }),
+
+  'nonempty tokens still match whole words': isolatedSelectorTest(function(assert, domino) {
+    var document = domino.createDocument('<meta itemprop="name description">');
+    var meta = document.head.firstChild;
+    var matchingSelectors = [
+      'meta[itemprop~=description]',
+      "meta[itemprop~='description']",
+      'meta[itemprop~="DESCRIPTION" i]',
+      'meta[itemprop~="\\64 escription"]'
+    ];
+
+    matchingSelectors.forEach(function(selector) {
+      var matches = document.querySelectorAll(selector);
+      assert.strictEqual(matches.length, 1, selector);
+      assert.strictEqual(matches[0], meta, selector);
+      assert.strictEqual(document.querySelector(selector), meta, selector);
+      assert.strictEqual(meta.matches(selector), true, selector);
+    });
+
+    ['missing', 'DESCRIPTION', 'desc'].forEach(function(token) {
+      var selector = 'meta[itemprop~="' + token + '"]';
+      assert.strictEqual(document.querySelectorAll(selector).length, 0, selector);
+      assert.strictEqual(meta.matches(selector), false, selector);
+    });
+  }),
+
+  'empty tokens work in selector lists and pseudo-classes': isolatedSelectorTest(function(assert, domino) {
+    var document = domino.createDocument('<meta itemprop="name description">');
+    var meta = document.head.firstChild;
+    var matchingSelectors = [
+      'meta:not([itemprop~=""])',
+      'meta[itemprop~=""], meta[itemprop~="description"]',
+      'meta[itemprop~="description"], meta[itemprop~=""]',
+      'meta:is([itemprop~=""], [itemprop~="description"])'
+    ];
+
+    matchingSelectors.forEach(function(selector) {
+      var matches = document.querySelectorAll(selector);
+      assert.strictEqual(matches.length, 1, selector);
+      assert.strictEqual(matches[0], meta, selector);
+      assert.strictEqual(document.querySelector(selector), meta, selector);
+      assert.strictEqual(meta.matches(selector), true, selector);
+    });
+    assert.strictEqual(meta.matches('meta:is([itemprop~=""])'), false);
+  }),
+
+  'empty tokens do not match detached nodes or fragments': isolatedSelectorTest(function(assert, domino) {
+    var document = domino.createDocument();
+    var fragment = document.createDocumentFragment();
+    var parent = document.createElement('div');
+    var child = document.createElement('span');
+    var emptySelector = '[itemprop~=""]';
+    var matchingSelector = '[itemprop~="description"]';
+
+    parent.setAttribute('itemprop', 'name description');
+    parent.appendChild(child);
+    assert.strictEqual(parent.matches(emptySelector), false);
+    assert.strictEqual(child.closest(emptySelector), null);
+
+    fragment.appendChild(parent);
+    assert.strictEqual(fragment.querySelectorAll(emptySelector).length, 0);
+    assert.strictEqual(fragment.querySelector(emptySelector), null);
+    assert.strictEqual(child.closest(emptySelector), null);
+
+    assert.strictEqual(fragment.querySelector(matchingSelector), parent);
+    assert.strictEqual(child.closest(matchingSelector), parent);
+  }),
+
+  'other attribute operators keep their empty-value behavior': isolatedSelectorTest(function(assert, domino) {
+    var document = domino.createDocument('<meta itemprop="">');
+    var meta = document.head.firstChild;
+
+    assert.strictEqual(meta.matches('[itemprop]'), true);
+    assert.strictEqual(meta.matches('[itemprop=""]'), true);
+    assert.strictEqual(meta.matches('[itemprop|=""]'), true);
+    assert.strictEqual(meta.matches('[itemprop~=""]'), false);
+
+    meta.setAttribute('itemprop', '-suffix');
+    assert.strictEqual(meta.matches('[itemprop|=""]'), true);
+    assert.strictEqual(meta.matches('[itemprop=""]'), false);
+
+    meta.removeAttribute('itemprop');
+    assert.strictEqual(meta.matches('[itemprop]'), false);
+    assert.strictEqual(meta.matches('[itemprop=""]'), false);
+  })
+};
+
 exports.gh127 = function() {
   var document = domino.createDocument('<a href="#foo"></a><a href="http://#foo"></a>');
   var aEls = document.querySelectorAll('a');
