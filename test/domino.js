@@ -1,4 +1,5 @@
 'use strict';
+var assert = require('assert');
 var domino = require('../lib');
 var fs = require('fs');
 var html = fs.readFileSync(__dirname + '/fixture/doc.html', 'utf8');
@@ -259,6 +260,224 @@ exports.attributes2 = function() {
   div.removeAttribute('onclick');
   (div.attributes.onclick === undefined).should.be.true();
 };
+
+var indexNames = ['0', '1', '7', '42', '4294967294'];
+var otherNames = [
+  '00', '01', '-0', '+1', '-1', '1.0', '1.5', '1e2', '0x10',
+  '4294967295', '4294967296', '10000000000', 'nan', 'infinity'
+];
+
+function indexedKeys(object) {
+  return Object.getOwnPropertyNames(object).filter(function(name) {
+    return /^(0|[1-9][0-9]*)$/.test(name) && Number(name) < 0xFFFFFFFF;
+  });
+}
+
+function checkStorage(element) {
+  var names = element.getAttributeNames();
+  assert.ok(element._attrsByQName instanceof Map);
+  assert.strictEqual(element._attrsByQName.size, new Set(names).size);
+  assert.deepStrictEqual(indexedKeys(element._attrsByQName), []);
+  assert.deepStrictEqual(indexedKeys(element._attrsByLName), []);
+  var attrs = element.attributes;
+  assert.strictEqual(attrs, element.attributes);
+  assert.strictEqual(attrs.length, names.length);
+  assert.deepStrictEqual(indexedKeys(attrs), names.map(function(_, i) { return String(i); }));
+  names.forEach(function(name, i) {
+    assert.strictEqual(attrs[i], attrs.item(i));
+    assert.strictEqual(attrs[i].name, name);
+    assert.strictEqual(attrs[i].ownerElement, element);
+    assert.ok(element._attrsByQName.has(name));
+  });
+  assert.strictEqual(attrs[names.length], undefined);
+  assert.strictEqual(attrs.item(names.length), null);
+  assert.deepStrictEqual(Array.from(attrs), names.map(function(_, i) { return attrs[i]; }));
+}
+
+function parseElement(html) {
+  return domino.createDocument(html).body.firstChild;
+}
+
+exports.numericAttributes = {
+  'stores parsed numeric names without sparse property keys': function() {
+    var element = parseElement('<div 999="x" 2539="y" data-k="z"></div>');
+    checkStorage(element);
+    assert.strictEqual(element.getAttribute('999'), 'x');
+    assert.strictEqual(element.getAttribute('2539'), 'y');
+    assert.strictEqual(element.hasAttribute('2540'), false);
+    assert.strictEqual(element.attributes.getNamedItem('2539').value, 'y');
+    assert.strictEqual(element.outerHTML, '<div 999="x" 2539="y" data-k="z"></div>');
+  },
+
+  'distinguishes array indices from numeric-looking names': function() {
+    indexNames.concat(otherNames).forEach(function(name) {
+      var element = parseElement('<div title="keep" ' + name + '="value"></div>');
+      checkStorage(element);
+      var attr = element.getAttributeNode(name);
+      assert.strictEqual(attr.value, 'value');
+      assert.strictEqual(element.attributes.getNamedItem(name), attr);
+      if (indexNames.indexOf(name) !== -1) {
+        assert.strictEqual(element.attributes[name], element.attributes.item(Number(name)) || undefined);
+      } else {
+        assert.strictEqual(element.attributes[name], attr);
+      }
+    });
+  },
+
+  'keeps dense indices when attributes are added or updated after access': function() {
+    var element = parseElement('<div title="keep" 0="first"></div>');
+    var attrs = element.attributes;
+    element._setAttribute('1', 'second');
+    element._setAttribute('42', 'last');
+    element._setAttribute('0', 'updated');
+    element.id = 'reflected';
+    checkStorage(element);
+    assert.strictEqual(element.attributes, attrs);
+    assert.deepStrictEqual(element.getAttributeNames(), ['title', '0', '1', '42', 'id']);
+    assert.strictEqual(attrs[0].name, 'title');
+    assert.strictEqual(attrs.getNamedItem('0').value, 'updated');
+    assert.strictEqual(attrs.id.value, 'reflected');
+  },
+
+  'keeps DOM setter validation unchanged': function() {
+    var element = domino.createDocument().createElement('div');
+    assert.throws(function() { element.setAttribute('7', 'value'); }, {name: 'InvalidCharacterError'});
+    assert.throws(function() { element.setAttributeNS(null, '7', 'value'); }, {name: 'InvalidCharacterError'});
+    assert.throws(function() { element.toggleAttribute('7'); }, {name: 'InvalidCharacterError'});
+    checkStorage(element);
+  },
+
+  'preserves clone and import storage before and after attributes access': function() {
+    [false, true].forEach(function(materialized) {
+      var element = parseElement('<div title="keep" 0="first" 42="last"><i 7></i></div>');
+      if (materialized) { checkStorage(element); }
+      var target = domino.createDocument();
+      [element.cloneNode(true), target.importNode(element, true)].forEach(function(copy) {
+        assert.strictEqual(copy.outerHTML, element.outerHTML);
+        checkStorage(copy);
+        checkStorage(copy.firstChild);
+        assert.notStrictEqual(copy.getAttributeNode('0'), element.getAttributeNode('0'));
+        copy.getAttributeNode('0').value = 'changed';
+        assert.strictEqual(element.getAttribute('0'), 'first');
+      });
+    });
+  },
+
+  'transfers and replaces parsed Attr nodes on a live NamedNodeMap': function() {
+    ['setAttributeNode', 'setAttributeNodeNS'].forEach(function(method) {
+      var source = parseElement('<div 0="new"></div>');
+      var target = parseElement('<div title="keep" 0="old"></div>');
+      checkStorage(source);
+      checkStorage(target);
+      var attr = source.removeAttributeNode(source.getAttributeNode('0'));
+      var old = target[method](attr);
+      assert.strictEqual(old.value, 'old');
+      assert.strictEqual(old.ownerElement, null);
+      assert.strictEqual(attr.ownerElement, target);
+      assert.strictEqual(target.getAttribute('0'), 'new');
+      checkStorage(source);
+      checkStorage(target);
+    });
+  },
+
+  'retains namespace aliases until the last qualified-name match is removed': function() {
+    var element = domino.createDocument().createElement('div');
+    checkStorage(element);
+    ['urn:first', 'urn:second', 'urn:third'].forEach(function(ns, i) {
+      element.setAttributeNS(ns, 'p:name', String(i));
+    });
+    checkStorage(element);
+    assert.strictEqual(element.getAttribute('p:name'), '0');
+    element.removeAttributeNS('urn:second', 'name');
+    checkStorage(element);
+    element.removeAttribute('p:name');
+    assert.strictEqual(element.getAttribute('p:name'), '2');
+    assert.strictEqual(element.hasAttribute('p:name'), true);
+    checkStorage(element);
+    element.removeAttributeNode(element.getAttributeNode('p:name'));
+    assert.strictEqual(element.hasAttribute('p:name'), false);
+    checkStorage(element);
+  },
+
+  'preserves Map-method names and ordinary reflected attributes': function() {
+    var element = parseElement('<div get="a" set="b" has="c" delete="d" size="e"></div>');
+    checkStorage(element);
+    element.setAttribute('get', 'updated');
+    element.className = 'example';
+    assert.strictEqual(element.getAttribute('get'), 'updated');
+    assert.strictEqual(element.attributes.get.value, 'updated');
+    assert.strictEqual(element.toggleAttribute('hidden'), true);
+    assert.strictEqual(element.toggleAttribute('hidden'), false);
+    checkStorage(element);
+  },
+
+  'preserves numeric attributes in foreign content and templates': function() {
+    var doc = domino.createDocument('<svg 7="svg"><g 0="group"/></svg>' +
+      '<math 7="math"></math><template><i 7="template"></i></template>');
+    ['svg', 'g', 'math'].forEach(function(tag) { checkStorage(doc.querySelector(tag)); });
+    var child = doc.querySelector('template').content.firstChild;
+    assert.strictEqual(child.getAttribute('7'), 'template');
+    checkStorage(child);
+  },
+
+  'preserves attributes through small formatting reconstruction and reparsing': function() {
+    var input = '<p><b 7="value" title="keep">one<p>two';
+    var expected = '<p><b 7="value" title="keep">one</b></p>' +
+      '<p><b 7="value" title="keep">two</b></p>';
+    var doc = domino.createDocument(input);
+    assert.strictEqual(doc.body.innerHTML, expected);
+    Array.from(doc.querySelectorAll('b')).forEach(checkStorage);
+    doc.body.innerHTML = doc.body.innerHTML;
+    assert.strictEqual(doc.body.innerHTML, expected);
+    Array.from(doc.querySelectorAll('b')).forEach(checkStorage);
+    var template = doc.createElement('template');
+    template.innerHTML = input;
+    assert.strictEqual(template.innerHTML, expected);
+    Array.from(template.content.querySelectorAll('b')).forEach(checkStorage);
+  },
+
+  'preserves numeric names across incremental parser chunk boundaries': function() {
+    var input = '<div 42="first" 42="ignored" 0 title="keep"></div>';
+    for (var split = 0; split <= input.length; split++) {
+      var parser = domino.createIncrementalHTMLParser();
+      parser.write(input.slice(0, split));
+      parser.process();
+      parser.end(input.slice(split));
+      assert.strictEqual(parser.process(), false);
+      var element = parser.document().body.firstChild;
+      assert.strictEqual(element.outerHTML, '<div 42="first" 0="" title="keep"></div>');
+      checkStorage(element);
+    }
+  }
+};
+
+var removers = {
+  removeAttribute: function(element, name) { element.removeAttribute(name); },
+  removeAttributeNS: function(element, name) { element.removeAttributeNS(null, name); },
+  removeAttributeNode: function(element, name) { element.removeAttributeNode(element.getAttributeNode(name)); },
+  removeNamedItem: function(element, name) { element.attributes.removeNamedItem(name); },
+  removeNamedItemNS: function(element, name) { element.attributes.removeNamedItemNS(null, name); }
+};
+Object.keys(removers).forEach(function(method) {
+  exports.numericAttributes[method + ' releases names and keeps indices dense'] = function() {
+    [false, true].forEach(function(materialized) {
+      var element = parseElement('<div 0="first" title="keep" 1="second" 42="last"></div>');
+      if (materialized) { checkStorage(element); }
+      ['0', '42', '1', 'title'].forEach(function(name) {
+        var attr = element.getAttributeNode(name);
+        removers[method](element, name);
+        assert.strictEqual(attr.ownerElement, null);
+        assert.strictEqual(element.hasAttribute(name), false);
+        assert.strictEqual(element.getAttribute(name), null);
+        assert.strictEqual(element._attrsByQName.has(name), false);
+        checkStorage(element);
+      });
+      element._setAttribute('0', 'again');
+      checkStorage(element);
+      assert.strictEqual(element.getAttribute('0'), 'again');
+    });
+  };
+});
 
 // exports.jquery1_9 = function() {
 //   var window = createWindow(html);
