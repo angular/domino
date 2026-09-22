@@ -123,6 +123,61 @@ exports.escapeQSA = function() {
   document.querySelectorAll('\\50').should.have.length(1);
 };
 
+exports.escapeQSAHexRunLength = function() {
+  // A hexadecimal escape takes as many hex digits as it can, up to six; a
+  // seventh is a literal character, and one space after the run terminates it.
+  // Selector parsing must not be free to read the run any other way.
+  var document = domino.createDocument(
+    '<p id="A"></p><p id="Aa"></p><p id="foo"></p>'
+  );
+  document.querySelectorAll('#\\41').should.have.length(1);
+  document.querySelectorAll('#\\000041').should.have.length(1);
+  // six digits, then a seventh character that is also a hex digit
+  document.querySelectorAll('#\\000041a').should.have.length(1);
+  // a run shorter than six, terminated by a space or by a non-hex character
+  document.querySelectorAll('#\\41 a').should.have.length(1);
+  document.querySelectorAll('#A\\61').should.have.length(1);
+  document.querySelectorAll('[id=\\66oo]').should.have.length(1);
+  document.querySelectorAll('[id=\\66 oo]').should.have.length(1);
+  document.querySelectorAll('[id=\\000066oo]').should.have.length(1);
+  // the escape has to actually decode: `#\41` is `#A`, not `#a`
+  document.querySelectorAll('#\\61').should.have.length(0);
+};
+
+exports.selectorParsingIsNotExponential = function() {
+  // A selector must be parsed in time proportional to its length, whether or
+  // not it turns out to be valid. The `escape` rule used to admit several
+  // readings of the same input, so a selector that failed to parse cost 3^n in
+  // the number of escapes -- a few dozen bytes were enough to wedge the
+  // process for hours.
+  var document = domino.createDocument('<p id="foo">bar');
+  var shapes = {
+    'identifier escape': function(n) { return '[data-' + 'aaa\\'.repeat(n) + ']'; },
+    'class escape': function(n) { return '.' + 'aaa\\'.repeat(n); },
+    'id escape': function(n) { return '#' + 'aaa\\'.repeat(n); },
+    'type escape': function(n) { return 'aaa\\'.repeat(n) + '!'; },
+    'reference escape': function(n) { return 'p /' + 'aaa\\'.repeat(n) + '/ p'; }
+  };
+  // Grow one repeat at a time rather than jumping straight to the largest
+  // size, checking the budget after every parse, including the final size.
+  var limit = 1024;
+  Object.keys(shapes).forEach(function(name) {
+    var make = shapes[name];
+    var started = Date.now();
+    for (var n = 1; n <= limit; n++) {
+      try {
+        document.querySelectorAll(make(n));
+      } catch (e) {
+        // Rejecting these is fine; taking exponential time to do it is not.
+      }
+      assert.ok(
+        Date.now() - started <= 4000,
+        name + ': exceeded 4s at ' + n + ' repeats'
+      );
+    }
+  });
+};
+
 exports.gh20 = function() {
   var window = createWindow('');
   var frag = window.document.createDocumentFragment();
