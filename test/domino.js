@@ -146,17 +146,23 @@ exports.escapeQSAHexRunLength = function() {
 
 exports.selectorParsingIsNotExponential = function() {
   // A selector must be parsed in time proportional to its length, whether or
-  // not it turns out to be valid. The `escape` rule used to admit several
-  // readings of the same input, so a selector that failed to parse cost 3^n in
-  // the number of escapes -- a few dozen bytes were enough to wedge the
-  // process for hours.
+  // not it turns out to be valid. Both `escape` and `inside` used to admit
+  // several readings of the same input, so a selector that failed to parse
+  // cost 3^n (identifier escapes) or 2^n (attribute values) in the number of
+  // repeats -- a few dozen bytes were enough to wedge the process for hours.
   var document = domino.createDocument('<p id="foo">bar');
   var shapes = {
     'identifier escape': function(n) { return '[data-' + 'aaa\\'.repeat(n) + ']'; },
     'class escape': function(n) { return '.' + 'aaa\\'.repeat(n); },
     'id escape': function(n) { return '#' + 'aaa\\'.repeat(n); },
     'type escape': function(n) { return 'aaa\\'.repeat(n) + '!'; },
-    'reference escape': function(n) { return 'p /' + 'aaa\\'.repeat(n) + '/ p'; }
+    'reference escape': function(n) { return 'p /' + 'aaa\\'.repeat(n) + '/ p'; },
+    'value escape': function(n) { return '[a=' + '\\"'.repeat(n); },
+    'quoted value escape': function(n) { return '[a="' + '\\"'.repeat(n); },
+    'value nested group': function(n) { return '[a=' + '['.repeat(n); },
+    'nested group escape': function(n) { return '[a=' + '[\\]'.repeat(n); },
+    'argument escape': function(n) { return ':x(' + '\\)'.repeat(n); },
+    'argument nesting': function(n) { return ':x(' + '('.repeat(n); }
   };
   // Grow one repeat at a time rather than jumping straight to the largest
   // size, checking the budget after every parse, including the final size.
@@ -176,6 +182,19 @@ exports.selectorParsingIsNotExponential = function() {
       );
     }
   });
+};
+
+exports.malformedSelectorsThrowSyntaxError = function() {
+  // An unbalanced bracket inside an attribute value used to be swallowed by
+  // the value rule, leaving a selector that matched nothing or that failed
+  // later as an internal TypeError. Browsers reject both of these up front.
+  var document = domino.createDocument('<p id="foo">bar');
+  ['[id=a[]', '[id==[]'].forEach(function(selector) {
+    (function() { document.querySelectorAll(selector); }).should.throw(SyntaxError);
+  });
+  // ... while a lone trailing backslash stays acceptable, as in browsers.
+  document.querySelectorAll('[id=foo\\]').should.have.length(0);
+  document.querySelectorAll('[id=a\\]').should.have.length(0);
 };
 
 exports.gh20 = function() {
