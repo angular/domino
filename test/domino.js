@@ -197,6 +197,63 @@ exports.malformedSelectorsThrowSyntaxError = function() {
   document.querySelectorAll('[id=a\\]').should.have.length(0);
 };
 
+exports.selectorWhitespaceIsNotQuadratic = function() {
+  // Whitespace in a selector used to be scanned once per position it occupied.
+  // Trimming the selector and looking for the case-insensitivity flag both ran
+  // a greedy whitespace quantifier against an end anchor with nothing anchoring
+  // the left side, so a run that did not sit at the very end of the string was
+  // re-scanned from each of its own positions. A quarter of a megabyte of
+  // spaces took half a minute; it now costs one pass.
+  var document = domino.createDocument('<p id="foo">bar');
+  var shapes = {
+    'descendant combinator': function(n) { return 'p' + ' '.repeat(n) + 'p'; },
+    'attribute value': function(n) { return '[id=' + ' '.repeat(n) + ']'; },
+    'quoted attribute value': function(n) { return '[id="' + ' '.repeat(n) + '"]'; },
+    'failed case-insensitivity flag search': function(n) { return '[id="' + ' '.repeat(n) + 'I"]'; },
+    'pseudo-class argument': function(n) { return ':x(' + ' '.repeat(n) + ')'; }
+  };
+  // Double the run, checking the budget after every parse, including the final size.
+  var limit = 131072;
+  Object.keys(shapes).forEach(function(name) {
+    var make = shapes[name];
+    var started = Date.now();
+    for (var n = 1024; n <= limit; n *= 2) {
+      try {
+        document.querySelectorAll(make(n));
+      } catch (e) {
+        // Rejecting these is fine; taking quadratic time to do it is not.
+      }
+      assert.ok(
+        Date.now() - started <= 1000,
+        name + ': exceeded 1s at ' + n + ' spaces'
+      );
+    }
+  });
+};
+
+exports.selectorCaseInsensitivityWhitespace = function() {
+  var document = domino.createDocument(
+    '<p id="match" data-label="f oo"></p><p data-label="f oo extra"></p>'
+  );
+  var expected = document.getElementById('match');
+  assert.strictEqual(document.querySelectorAll('[data-label="F OO"]').length, 0);
+
+  ['i', 'I'].forEach(function(flag) {
+    var started = Date.now();
+    for (var n = 1024; n <= 131072; n *= 2) {
+      // The flag is outside the quotes; stripping it must preserve value whitespace.
+      var selector = '[data-label="F OO"' + ' '.repeat(n) + flag + ']';
+      var matches = document.querySelectorAll(selector);
+      assert.strictEqual(matches.length, 1);
+      assert.strictEqual(matches[0], expected);
+      assert.ok(
+        Date.now() - started <= 1000,
+        'case-insensitivity flag ' + flag + ': exceeded 1s at ' + n + ' spaces'
+      );
+    }
+  });
+};
+
 exports.gh20 = function() {
   var window = createWindow('');
   var frag = window.document.createDocumentFragment();
