@@ -2115,3 +2115,208 @@ exports.clonedTemplateContentMaintainsHostReference = function () {
   );
 };
 
+exports.idIndexIsLazy = function() {
+  // The id -> element index is only built when something actually looks an
+  // element up by id.  Parsing, mutating and serializing a document must not
+  // build one: the fragment parser creates (and throws away) a private
+  // document for every innerHTML assignment, and indexing those is pure cost.
+  var doc = domino.createDocument('<div id="a"><p id="b">x</p></div>', true);
+  (doc._byId === null).should.be.true();
+
+  var div = doc.getElementsByTagName('div')[0];
+  div.innerHTML = '<span id="c"><b id="d">y</b></span>';
+  div.setAttribute('id', 'renamed');
+  doc.body.appendChild(doc.createElement('i')).setAttribute('id', 'e');
+  doc.body.serialize();
+  (doc._byId === null).should.be.true();
+
+  // ...and the index built on the first lookup reflects every one of those
+  // mutations.
+  doc.getElementById('c').tagName.should.equal('SPAN');
+  (doc._byId === null).should.be.false();
+  doc.getElementById('d').tagName.should.equal('B');
+  doc.getElementById('e').tagName.should.equal('I');
+  doc.getElementById('renamed').tagName.should.equal('DIV');
+  (doc.getElementById('a') === null).should.be.true();
+  (doc.getElementById('b') === null).should.be.true();
+};
+
+exports.idIndexBuiltLateMatchesIndexBuiltEarly = function() {
+  // Same mutations, two documents: one queried before the mutations (so the
+  // index is maintained incrementally) and one queried only afterwards (so the
+  // index is built in one pass).  They must agree.
+  function mutate(doc) {
+    var body = doc.body;
+    var a = doc.createElement('a'); a.setAttribute('id', 'x'); body.appendChild(a);
+    var b = doc.createElement('b'); b.setAttribute('id', 'x'); body.appendChild(b);
+    var c = doc.createElement('c'); c.setAttribute('id', 'y'); body.appendChild(c);
+    body.removeChild(a);
+    c.setAttribute('id', 'x');
+    var d = doc.createElement('d'); d.setAttribute('id', 'z'); body.appendChild(d);
+    d.removeAttribute('id');
+    body.insertBefore(a, b);
+    return body;
+  }
+  function report(doc) {
+    return ['x', 'y', 'z'].map(function(id) {
+      var el = doc.getElementById(id);
+      return id + '=' + (el ? el.tagName : 'null') +
+        '/' + doc._hasMultipleElementsWithId(id) +
+        '/' + doc.querySelectorAll('#' + id).length;
+    }).join(' ');
+  }
+  var early = domino.createDocument('', true);
+  early.getElementById('nothing-yet'); // force the index to exist up front
+  mutate(early);
+
+  var late = domino.createDocument('', true);
+  mutate(late);
+
+  report(late).should.equal(report(early));
+  report(late).should.equal('x=A/true/3 y=null/false/0 z=null/false/0');
+};
+
+exports.idIndexAfterLazyBuildTracksRemovals = function() {
+  // duplicateID, but with the first lookup deferred until after the elements
+  // are in place, so the whole MultiId bucket comes from the one-pass build.
+  var doc = domino.createDocument('<root></root>');
+  var root = doc.documentElement;
+  var kids = ['a', 'b', 'c', 'd'].map(function(name) {
+    var elt = doc.createElement(name);
+    elt.setAttribute('id', 'x');
+    return root.appendChild(elt);
+  });
+  // first lookup happens here, with all four already in the tree
+  assert.strictEqual(doc.getElementById('x'), kids[0]);
+  root.removeChild(kids[0]);
+  assert.strictEqual(doc.getElementById('x'), kids[1]);
+  root.removeChild(kids[2]);
+  assert.strictEqual(doc.getElementById('x'), kids[1]);
+  root.removeChild(kids[1]);
+  assert.strictEqual(doc.getElementById('x'), kids[3]);
+  root.removeChild(kids[3]);
+  assert.strictEqual(doc.getElementById('x'), null);
+};
+
+exports.idIndexReturnsFirstInDocumentOrder = function() {
+  // getFirst() compares document positions, so the bucket's internal key order
+  // must not matter: insert the duplicates back to front.
+  var doc = domino.createDocument('<root></root>');
+  var root = doc.documentElement;
+  var first = null;
+  for (var i = 0; i < 8; i++) {
+    var elt = doc.createElement('n' + i);
+    elt.setAttribute('id', 'x');
+    root.insertBefore(elt, root.firstChild);
+    first = elt;
+  }
+  assert.strictEqual(doc.getElementById('x'), first);
+  assert.strictEqual(doc.getElementById('x'), root.firstChild);
+  doc.querySelectorAll('#x').should.have.length(8);
+};
+
+exports.idIndexHandlesIdsThatLookLikeArrayIndexes = function() {
+  var doc = domino.createDocument('<div id="a"></div><div id="b"></div>', true);
+  var first = doc.getElementById('a');
+  first.setAttribute('id', '1023');
+  assert.strictEqual(doc.getElementById('1023'), first);
+  assert.strictEqual(doc.getElementById('a'), null);
+  assert.strictEqual(doc.getElementById('b'), doc.querySelectorAll('div')[1]);
+  doc.body.removeChild(first);
+  assert.strictEqual(doc.getElementById('1023'), null);
+};
+
+exports.idIndexCoercesLookupArguments = function() {
+  var values = [
+    42, 0, true, false, null, undefined, NaN,
+    new String('42'), ['42'],
+    { toString: function() { return '42'; } }
+  ];
+  [false, true].forEach(function(early) {
+    values.forEach(function(value) {
+      var doc = domino.createDocument('', true);
+      if (early) doc.getElementById('nothing-yet');
+      var element = doc.body.appendChild(doc.createElement('div'));
+      element.id = String(value);
+      assert.ok(doc.getElementById(value) === element,
+        'Expected lookup to coerce ' + String(value) + ' to a string');
+    });
+  });
+};
+
+exports.idIndexCoercesBeforeLazyBuild = function() {
+  var doc = domino.createDocument('<div id="original"></div>', true);
+  var element = doc.body.firstChild;
+  assert.throws(function() {
+    doc.getElementById(Object.create(null));
+  }, TypeError);
+  assert.strictEqual(doc._byId, null);
+
+  var calls = 0;
+  var id = {
+    toString: function() {
+      calls++;
+      assert.strictEqual(doc._byId, null);
+      element.id = 'renamed';
+      return 'renamed';
+    }
+  };
+  assert.ok(doc.getElementById(id) === element);
+  assert.strictEqual(calls, 1);
+  assert.strictEqual(doc.getElementById('original'), null);
+};
+
+exports.idIndexIgnoresNamespacedIds = function() {
+  [false, true].forEach(function(early) {
+    var doc = domino.createDocument('', true);
+    if (early) doc.getElementById('nothing-yet');
+    var element = doc.body.appendChild(doc.createElement('div'));
+    element.setAttributeNS('urn:test', 'id', 'foreign');
+    assert.ok(doc.getElementById('foreign') === null);
+    assert.strictEqual(doc.querySelectorAll('#foreign').length, 0);
+
+    doc.body.removeChild(element);
+    doc.body.appendChild(element);
+    assert.ok(doc.getElementById('foreign') === null);
+    element.setAttributeNS('urn:test', 'id', 'changed');
+    assert.ok(doc.getElementById('changed') === null);
+    doc.body.removeChild(element);
+  });
+};
+
+exports.idIndexSeparatesIdNamespaces = function() {
+  [false, true].forEach(function(early) {
+    [false, true].forEach(function(attached) {
+      [false, true].forEach(function(xml) {
+        var doc = xml ?
+          domino.createDOMImplementation().createDocument(null, 'root', null) :
+          domino.createDocument('', true);
+        var parent = xml ? doc.documentElement : doc.body;
+        if (early) doc.getElementById('nothing-yet');
+        var element = doc.createElement('div');
+        if (attached) parent.appendChild(element);
+        element.setAttributeNS('urn:test', 'id', 'foreign');
+        element.setAttributeNS(null, 'id', 'real');
+        if (!attached) parent.appendChild(element);
+
+        assert.ok(doc.getElementById('real') === element);
+        assert.ok(doc.getElementById('foreign') === null);
+        assert.ok(doc.querySelector('#real') === element);
+        assert.strictEqual(doc.querySelectorAll('#foreign').length, 0);
+
+        element.getAttributeNodeNS(null, 'id').value = 'renamed';
+        assert.strictEqual(doc.getElementById('real'), null);
+        assert.ok(doc.getElementById('renamed') === element);
+        parent.removeChild(element);
+        assert.strictEqual(doc.getElementById('renamed'), null);
+        parent.appendChild(element);
+        assert.ok(doc.getElementById('renamed') === element);
+
+        element.removeAttributeNS(null, 'id');
+        assert.strictEqual(doc.getElementById('renamed'), null);
+        assert.ok(doc.getElementById('foreign') === null);
+        parent.removeChild(element);
+      });
+    });
+  });
+};
