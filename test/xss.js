@@ -238,10 +238,12 @@ exports.rawContentRemainsRawAtHtmlIntegrationPoints = function () {
 };
 
 exports.annotationXmlEncodingChangeUpdatesRawContentContext = function () {
+  // `g` rather than `div`: `div` is one of the start tags that break a parser
+  // out of foreign content on its own, which would mask what this test checks.
   const document = assertStyleSerialization(
     [[MATHML, 'math'],
       [MATHML, 'annotation-xml', { ENCODING: 'TEXT/HTML' }],
-      [HTML_ELEMENT, 'div']],
+      [HTML_ELEMENT, 'g']],
     styleCss,
   );
   document.querySelector('annotation-xml')
@@ -249,6 +251,89 @@ exports.annotationXmlEncodingChangeUpdatesRawContentContext = function () {
   document.body.serialize().should.containEql(
     '<style>' + serializedStyleCss + '</style>',
   );
+};
+
+exports.integrationPointNamesOnlyApplyInTheirOwnNamespace = function () {
+  // `desc`, `title` and `foreignObject` are HTML integration points inside SVG
+  // only; `mi`/`mo`/`mn`/`ms`/`mtext` and `annotation-xml` inside MathML only.
+  // A parser re-reading our output derives the namespace from the ancestor
+  // chain, so matching these names without checking the surrounding namespace
+  // leaves the raw text live.
+  const cases = [
+    [[MATHML, 'math'], [HTML_ELEMENT, 'desc']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'title']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'foreignObject']],
+    [[SVG, 'svg'], [HTML_ELEMENT, 'mtext']],
+    [[SVG, 'svg'], [HTML_ELEMENT, 'mi']],
+    [[SVG, 'svg'],
+      [HTML_ELEMENT, 'annotation-xml', { encoding: 'text/html' }]],
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [MATHML, 'math'],
+      [HTML_ELEMENT, 'desc']],
+  ];
+  for (const ancestors of cases) {
+    assertStyleSerialization(ancestors, serializedStyleCss);
+  }
+};
+
+exports.integrationPointNamesInTheirOwnNamespaceStayRaw = function () {
+  // The mirror image of the test above: the same names in the namespace they
+  // belong to keep raw CSS, so escaping does not break stylesheets.
+  const cases = [
+    [[SVG, 'svg'], [SVG, 'desc']],
+    [[SVG, 'svg'], [HTML_ELEMENT, 'title']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'mtext']],
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [MATHML, 'math'],
+      [HTML_ELEMENT, 'mtext']],
+    // math -> mtext opens HTML, <svg> re-enters SVG, desc opens HTML again.
+    [[MATHML, 'math'], [HTML_ELEMENT, 'mtext'], [SVG, 'svg'],
+      [HTML_ELEMENT, 'desc']],
+  ];
+  for (const ancestors of cases) {
+    assertStyleSerialization(ancestors, styleCss);
+  }
+};
+
+exports.htmlBreakoutTagsLeaveForeignContent = function () {
+  // A parser treats `div`, `p`, `span`, `table`... inside SVG/MathML as a parse
+  // error and pops back out to HTML, so their descendants are HTML and raw
+  // text must stay raw -- escaping there would corrupt stylesheets.
+  for (const ancestors of [
+    [[SVG, 'svg'], [HTML_ELEMENT, 'div']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'p']],
+    [[SVG, 'svg'], [HTML_ELEMENT, 'table']],
+    [[MATHML, 'math'], [MATHML, 'annotation-xml'], [HTML_ELEMENT, 'div']],
+  ]) {
+    assertStyleSerialization(ancestors, styleCss);
+  }
+
+  // `font` only breaks out when it carries color/face/size.
+  assertStyleSerialization(
+    [[SVG, 'svg'], [HTML_ELEMENT, 'font']], serializedStyleCss);
+  assertStyleSerialization(
+    [[SVG, 'svg'], [HTML_ELEMENT, 'font', { color: 'red' }]], styleCss);
+  // `g` is not a breakout tag, so it stays in SVG.
+  assertStyleSerialization([[SVG, 'svg'], [HTML_ELEMENT, 'g']],
+    serializedStyleCss);
+};
+
+exports.foreignContentReentersAfterBreakoutTag = function () {
+  // svg -> div leaves foreign content, <math> enters it again, and
+  // foreignObject is not an integration point in MathML.
+  const document = createStyleDocument(
+    [[SVG, 'svg'], [HTML_ELEMENT, 'div'], [MATHML, 'math'],
+      [HTML_ELEMENT, 'foreignObject']],
+  );
+  const html = document.serialize();
+  html.should.containEql('<style>' + serializedStyleCss + '</style>');
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
+exports.integrationPointNameInWrongNamespaceDoesNotFireAlert = function () {
+  const document = createStyleDocument(
+    [[MATHML, 'math'], [HTML_ELEMENT, 'desc']],
+  );
+  const html = document.serialize();
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
 };
 
 exports.detachedRawContentUsesSerializedRootContext = function () {
