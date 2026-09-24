@@ -260,3 +260,34 @@ exports.parseAlgorithm.activeFormattingElements = {
     }
   }
 };
+
+
+exports.parseAlgorithm['active formatting reconstruction budget'] = {
+  'bounds pathological fragment reconstruction': function() {
+    var doc = domino.createDocument();
+    var template = doc.createElement('template');
+    var html = '';
+
+    for (var i = 0; i < 100; i++) {
+      html += '<p><b a' + i + '></p>';
+    }
+
+    assert.throws(function() {
+      template.innerHTML = html;
+    }, /active formatting reconstruction limit exceeded/);
+  },
+
+  'allows normally nested formatting elements': function() {
+    var doc = domino.createDocument();
+    var template = doc.createElement('template');
+    var html = '';
+
+    for (var i = 0; i < 100; i++) {
+      html += '<p><b a' + i + '></b></p>';
+    }
+
+    assert.doesNotThrow(function() {
+      template.innerHTML = html;
+    });
+  }
+};
