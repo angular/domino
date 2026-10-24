@@ -2320,3 +2320,51 @@ exports.idIndexSeparatesIdNamespaces = function() {
     });
   });
 };
+
+exports.reflectsAutofocusAutocapitalizeAndNoModuleUnderTheirStandardNames = function() {
+  var doc = domino.createDocument('');
+
+  var div = doc.createElement('div');
+  div.autofocus.should.equal(false);
+  div.autofocus = true;
+  div.outerHTML.should.equal('<div autofocus=""></div>');
+  div.autofocus = false;
+  div.outerHTML.should.equal('<div></div>');
+
+  div.autocapitalize.should.equal('');
+  div.autocapitalize = 'words';
+  div.outerHTML.should.equal('<div autocapitalize="words"></div>');
+  [
+    ['off', 'none'], ['none', 'none'], ['on', 'sentences'],
+    ['sentences', 'sentences'], ['WORDS', 'words'], ['characters', 'characters'],
+    ['', ''], ['bogus', 'sentences'],
+  ].forEach(function(pair) {
+    div.setAttribute('autocapitalize', pair[0]);
+    div.autocapitalize.should.equal(pair[1]);
+  });
+
+  var script = doc.createElement('script');
+  script.noModule.should.equal(false);
+  script.noModule = true;
+  script.outerHTML.should.equal('<script nomodule=""></script>');
+};
+
+exports.keepsTheOldNamesOfAutofocusAutocapitalizeAndNoModule = function() {
+  var doc = domino.createDocument('');
+
+  var div = doc.createElement('div');
+  div.autoFocus = true;
+  div.autoCapitalize = 'off';
+  div.outerHTML.should.equal('<div autofocus="" autocapitalize="off"></div>');
+  div.autoFocus.should.equal(true);
+  div.autoCapitalize.should.equal('none');
+  div.autoFocus = false;
+  div.outerHTML.should.equal('<div autocapitalize="off"></div>');
+
+  var script = doc.createElement('script');
+  script.nomodule = true;
+  script.outerHTML.should.equal('<script nomodule=""></script>');
+  script.nomodule.should.equal(true);
+  script.nomodule = false;
+  script.outerHTML.should.equal('<script></script>');
+};
