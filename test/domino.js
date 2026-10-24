@@ -2402,3 +2402,77 @@ exports.formAssociatedElementsDoNotShareReflectedAttributes = function() {
   meter.value = 3;
   meter.outerHTML.should.equal('<meter value="3"></meter>');
 };
+
+exports.reflectsNewerHtmlAttributes = function() {
+  var doc = domino.createDocument('');
+  function serialize(tag, props) {
+    var el = doc.createElement(tag);
+    Object.keys(props).forEach(function(name) { el[name] = props[name]; });
+    return el.outerHTML;
+  }
+
+  serialize('div', {inert: true}).should.equal('<div inert=""></div>');
+  serialize('div', {popover: 'auto'}).should.equal('<div popover="auto"></div>');
+  serialize('div', {inputMode: 'numeric'}).should.equal('<div inputmode="numeric"></div>');
+  serialize('div', {autocorrect: false}).should.equal('<div autocorrect="off"></div>');
+  serialize('img', {decoding: 'async', fetchPriority: 'high'})
+    .should.equal('<img decoding="async" fetchpriority="high">');
+  serialize('link', {fetchPriority: 'low'}).should.equal('<link fetchpriority="low">');
+  serialize('script', {fetchPriority: 'low'})
+    .should.equal('<script fetchpriority="low"></script>');
+  serialize('details', {name: 'faq'}).should.equal('<details name="faq"></details>');
+  serialize('button', {command: 'show-modal', popoverTargetAction: 'hide'})
+    .should.equal('<button command="show-modal" popovertargetaction="hide"></button>');
+  serialize('input', {webkitdirectory: true, popoverTargetAction: 'show', formAction: '/save'})
+    .should.equal('<input webkitdirectory="" popovertargetaction="show" formaction="/save">');
+  serialize('form', {rel: 'noopener'}).should.equal('<form rel="noopener"></form>');
+  serialize('td', {headers: 'a b'}).should.equal('<td headers="a b"></td>');
+  serialize('video', {playsInline: true, disablePictureInPicture: true, disableRemotePlayback: true})
+    .should.equal('<video playsinline="" disablepictureinpicture="" disableremoteplayback=""></video>');
+  serialize('meter', {min: 0, max: 100, low: 30, high: 80, optimum: 90, value: 42})
+    .should.equal('<meter min="0" max="100" low="30" high="80" optimum="90" value="42"></meter>');
+};
+
+exports.newerHtmlAttributesFollowTheirGetterRules = function() {
+  var doc = domino.createDocument('');
+
+  var div = doc.createElement('div');
+  (div.popover === null).should.equal(true);
+  [['', 'auto'], ['MANUAL', 'manual'], ['hint', 'hint'], ['bogus', 'manual']]
+    .forEach(function(pair) {
+      div.setAttribute('popover', pair[0]);
+      div.popover.should.equal(pair[1]);
+    });
+  div.popover = null;
+  div.hasAttribute('popover').should.equal(false);
+
+  div.autocorrect.should.equal(true);
+  div.setAttribute('autocorrect', 'OFF');
+  div.autocorrect.should.equal(false);
+  ['password', 'url', 'email'].forEach(function(type) {
+    var input = doc.createElement('input');
+    input.type = type;
+    input.autocorrect.should.equal(false, type);
+  });
+  domino.createDocument('<form autocorrect="off"><input></form>')
+    .querySelector('input').autocorrect.should.equal(false);
+  domino.createDocument('<form autocorrect="off"><input autocorrect="bogus"></form>')
+    .querySelector('input').autocorrect.should.equal(true);
+
+  var textarea = doc.createElement('textarea');
+  textarea.setAttribute('inputmode', 'latin');
+  textarea.inputMode.should.equal('');
+
+  var button = doc.createElement('button');
+  button.popoverTargetAction.should.equal('toggle');
+
+  var img = doc.createElement('img');
+  img.fetchPriority.should.equal('auto');
+  img.decoding.should.equal('auto');
+  img.setAttribute('fetchpriority', 'bogus');
+  img.fetchPriority.should.equal('auto');
+
+  var meter = doc.createElement('meter');
+  [meter.min, meter.max, meter.value, meter.low, meter.high, meter.optimum]
+    .should.eql([0, 1, 0, 0, 1, 0.5]);
+};
