@@ -2368,3 +2368,37 @@ exports.keepsTheOldNamesOfAutofocusAutocapitalizeAndNoModule = function() {
   script.nomodule = false;
   script.outerHTML.should.equal('<script></script>');
 };
+
+exports.formAssociatedElementsDoNotShareReflectedAttributes = function() {
+  var doc = domino.createDocument('');
+
+  // These used to come from the attributes of <button>, <keygen>, <label>
+  // and <object>, which all shared one property object.
+  ['formAction', 'formMethod', 'disabled', 'challenge', 'data', 'useMap']
+    .forEach(function(name) {
+      (name in doc.createElement('progress')).should.equal(false, name);
+    });
+  ('value' in doc.createElement('label')).should.equal(false);
+  ('formAction' in doc.createElement('fieldset')).should.equal(false);
+  ('htmlFor' in doc.createElement('meter')).should.equal(false);
+
+  doc.createElement('fieldset').type.should.equal('fieldset');
+  doc.createElement('output').type.should.equal('output');
+
+  var output = doc.createElement('output');
+  output.htmlFor = 'a b';
+  output.outerHTML.should.equal('<output for="a b"></output>');
+  output.value.should.equal('');
+  output.value = '42';
+  output.outerHTML.should.equal('<output for="a b">42</output>');
+  output.value.should.equal('42');
+
+  var progress = doc.createElement('progress');
+  progress.value.should.equal(0);
+  progress.value = 0.5;
+  progress.outerHTML.should.equal('<progress value="0.5"></progress>');
+
+  var meter = doc.createElement('meter');
+  meter.value = 3;
+  meter.outerHTML.should.equal('<meter value="3"></meter>');
+};
