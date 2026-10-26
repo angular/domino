@@ -260,3 +260,139 @@ exports.parseAlgorithm.activeFormattingElements = {
     }
   }
 };
+
+exports.parseAlgorithm.attributeNames = {
+  'keeps the first value and attribute order across tokenizer paths': function() {
+    var cases = [
+      ['<div title="first" id=x title="second">', '<div title="first" id="x"></div>'],
+      ['<div TITLE="first" id=x title="second">', '<div title="first" id="x"></div>'],
+      ['<div title="first" id=x TITLE="second">', '<div title="first" id="x"></div>'],
+      ['<div title="a&amp;b" title="second">', '<div title="a&amp;b"></div>'],
+      ['<div title="first" title="a&amp;b">', '<div title="first"></div>'],
+      ['<div title title="second">', '<div title=""></div>'],
+      ['<div title="first" title>', '<div title="first"></div>'],
+      ['<div title=first title=second >', '<div title="first"></div>']
+    ];
+    cases.forEach(function(test) {
+      var doc = domino.createDocument(test[0]);
+      assert.strictEqual(doc.body.innerHTML, test[1]);
+      doc.body.innerHTML = test[0];
+      assert.strictEqual(doc.body.innerHTML, test[1]);
+    });
+  },
+
+  'accepts object property names and keeps their first values': function() {
+    var input = '<div __proto__="first" constructor="first" toString="first" ' +
+      'hasOwnProperty="first" __proto__="second" constructor="second" ' +
+      'TOSTRING="second" hasownproperty="second">';
+    var indexedPrefix = '';
+    for (var i = 0; i < 25; i++) indexedPrefix += ' a' + i;
+    ['', indexedPrefix].forEach(function(prefix) {
+      var div = domino.createDocument(input.replace('<div', '<div' + prefix)).body.firstChild;
+      ['__proto__', 'constructor', 'tostring', 'hasownproperty'].forEach(function(name) {
+        assert.strictEqual(div.getAttribute(name), 'first');
+      });
+    });
+  },
+
+  'keeps first bare and valued attributes when the index is created': function() {
+    [23, 24, 25].forEach(function(count) {
+      var attrs = '';
+      for (var i = 0; i < count; i++) attrs += ' a' + i;
+      var doc = domino.createDocument('<div title' + attrs + ' title="second" ' +
+        'id="first" ID="second"></div><div title="next"' + attrs + '></div>');
+      assert.strictEqual(doc.body.firstChild.getAttribute('title'), '');
+      assert.strictEqual(doc.body.firstChild.getAttribute('id'), 'first');
+      assert.strictEqual(doc.body.firstChild.attributes.length, count + 2);
+      assert.strictEqual(doc.body.lastChild.getAttribute('title'), 'next');
+      assert.strictEqual(doc.body.lastChild.attributes.length, count + 1);
+    });
+  },
+
+  'resets names between start, end, and self-closing tags': function() {
+    var input = '<div title="first"></div title="ignored">' +
+      '<input title="second"/><div title="third"></div>';
+    assert.strictEqual(domino.createDocument(input).body.innerHTML,
+      '<div title="first"></div><input title="second"><div title="third"></div>');
+  },
+
+  'resets the index after end tags with many attributes': function() {
+    var attrs = '';
+    for (var i = 0; i < 25; i++) attrs += ' a' + i + '="first"';
+    var input = '<div' + attrs + '></div' + attrs + '>' +
+      '<div' + attrs.replace(/first/g, 'next') + '></div>';
+    var doc = domino.createDocument(input);
+    assert.strictEqual(doc.body.innerHTML, '<div' + attrs + '></div>' +
+      '<div' + attrs.replace(/first/g, 'next') + '></div>');
+    assert.strictEqual(doc.body.lastChild.attributes.length, 25);
+  },
+
+  'resets the index after self-closing tags with many attributes': function() {
+    var attrs = '';
+    for (var i = 0; i < 25; i++) attrs += ' a' + i + '="first"';
+    var input = '<img' + attrs + '/><img' + attrs.replace(/first/g, 'next') + '/>';
+    var doc = domino.createDocument(input);
+    assert.strictEqual(doc.body.innerHTML, '<img' + attrs + '>' +
+      '<img' + attrs.replace(/first/g, 'next') + '>');
+    assert.strictEqual(doc.body.lastChild.attributes.length, 25);
+  },
+
+  'preserves foreign attribute case and namespaces after duplicate removal': function() {
+    var doc = domino.createDocument('<svg viewBox="first" VIEWBOX="second" ' +
+      'xlink:href="first" XLINK:HREF="second"><g viewBox="next"/></svg>');
+    var svg = doc.body.firstChild;
+    assert.strictEqual(svg.attributes.length, 2);
+    assert.strictEqual(svg.attributes[0].name, 'viewBox');
+    assert.strictEqual(svg.getAttribute('viewBox'), 'first');
+    assert.strictEqual(svg.getAttributeNS('http://www.w3.org/1999/xlink', 'href'), 'first');
+    assert.strictEqual(svg.firstChild.getAttribute('viewBox'), 'next');
+  },
+
+  'keeps duplicate detection across every input split and one-character chunks': function() {
+    var prefix = '';
+    for (var i = 0; i < 25; i++) prefix += ' a' + i;
+    var input = '<div' + prefix + ' title="first" TITLE="second" data-x="a&amp;b" data-x=last>' +
+      '</div><div title="next"></div>';
+    var expected = '<div' + prefix.replace(/a\d+/g, '$&=""') +
+      ' title="first" data-x="a&amp;b"></div><div title="next"></div>';
+    for (var split = 0; split <= input.length; split++) {
+      var parser = domino.createIncrementalHTMLParser();
+      parser.write(input.slice(0, split));
+      parser.process();
+      parser.end(input.slice(split));
+      assert.strictEqual(parser.process(), false);
+      assert.strictEqual(parser.document().body.innerHTML, expected);
+    }
+    var parser = domino.createIncrementalHTMLParser();
+    input.split('').forEach(function(character) {
+      parser.write(character);
+      parser.process();
+    });
+    parser.end();
+    assert.strictEqual(parser.process(), false);
+    assert.strictEqual(parser.document().body.innerHTML, expected);
+  },
+
+  'preserves many distinct attributes through both tokenizer paths': function() {
+    ['simple', 'general'].forEach(function(kind) {
+      var names = [];
+      var attrs = [];
+      for (var i = 0; i < 10000; i++) {
+        // SIMPLEATTR accepts lowercase letters and hyphens, but not digits.
+        var name = kind === 'general' ? 'a' + i :
+          'a-' + String.fromCharCode(97 + Math.floor(i / 676)) +
+          String.fromCharCode(97 + Math.floor(i / 26) % 26) +
+          String.fromCharCode(97 + i % 26);
+        names.push(name);
+        attrs.push(' ' + name + '="first"');
+      }
+      var div = domino.createDocument('<div' + attrs.join('') +
+        attrs.join('').replace(/first/g, 'second') + '>').body.firstChild;
+      assert.strictEqual(div.attributes.length, names.length);
+      names.forEach(function(name, index) {
+        assert.strictEqual(div.attributes[index].name, name);
+        assert.strictEqual(div.attributes[index].value, 'first');
+      });
+    });
+  }
+};
