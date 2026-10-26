@@ -286,7 +286,7 @@ exports.parseAlgorithm.attributeNames = {
       'hasOwnProperty="first" __proto__="second" constructor="second" ' +
       'TOSTRING="second" hasownproperty="second">';
     var indexedPrefix = '';
-    for (var i = 0; i < 17; i++) indexedPrefix += ' a' + i;
+    for (var i = 0; i < 25; i++) indexedPrefix += ' a' + i;
     ['', indexedPrefix].forEach(function(prefix) {
       var div = domino.createDocument(input.replace('<div', '<div' + prefix)).body.firstChild;
       ['__proto__', 'constructor', 'tostring', 'hasownproperty'].forEach(function(name) {
@@ -296,7 +296,7 @@ exports.parseAlgorithm.attributeNames = {
   },
 
   'keeps first bare and valued attributes when the index is created': function() {
-    [15, 16, 17].forEach(function(count) {
+    [23, 24, 25].forEach(function(count) {
       var attrs = '';
       for (var i = 0; i < count; i++) attrs += ' a' + i;
       var doc = domino.createDocument('<div title' + attrs + ' title="second" ' +
@@ -316,6 +316,27 @@ exports.parseAlgorithm.attributeNames = {
       '<div title="first"></div><input title="second"><div title="third"></div>');
   },
 
+  'resets the index after end tags with many attributes': function() {
+    var attrs = '';
+    for (var i = 0; i < 25; i++) attrs += ' a' + i + '="first"';
+    var input = '<div' + attrs + '></div' + attrs + '>' +
+      '<div' + attrs.replace(/first/g, 'next') + '></div>';
+    var doc = domino.createDocument(input);
+    assert.strictEqual(doc.body.innerHTML, '<div' + attrs + '></div>' +
+      '<div' + attrs.replace(/first/g, 'next') + '></div>');
+    assert.strictEqual(doc.body.lastChild.attributes.length, 25);
+  },
+
+  'resets the index after self-closing tags with many attributes': function() {
+    var attrs = '';
+    for (var i = 0; i < 25; i++) attrs += ' a' + i + '="first"';
+    var input = '<img' + attrs + '/><img' + attrs.replace(/first/g, 'next') + '/>';
+    var doc = domino.createDocument(input);
+    assert.strictEqual(doc.body.innerHTML, '<img' + attrs + '>' +
+      '<img' + attrs.replace(/first/g, 'next') + '>');
+    assert.strictEqual(doc.body.lastChild.attributes.length, 25);
+  },
+
   'preserves foreign attribute case and namespaces after duplicate removal': function() {
     var doc = domino.createDocument('<svg viewBox="first" VIEWBOX="second" ' +
       'xlink:href="first" XLINK:HREF="second"><g viewBox="next"/></svg>');
@@ -329,7 +350,7 @@ exports.parseAlgorithm.attributeNames = {
 
   'keeps duplicate detection across every input split and one-character chunks': function() {
     var prefix = '';
-    for (var i = 0; i < 17; i++) prefix += ' a' + i;
+    for (var i = 0; i < 25; i++) prefix += ' a' + i;
     var input = '<div' + prefix + ' title="first" TITLE="second" data-x="a&amp;b" data-x=last>' +
       '</div><div title="next"></div>';
     var expected = '<div' + prefix.replace(/a\d+/g, '$&=""') +
