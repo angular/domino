@@ -2320,3 +2320,159 @@ exports.idIndexSeparatesIdNamespaces = function() {
     });
   });
 };
+
+exports.reflectsAutofocusAutocapitalizeAndNoModuleUnderTheirStandardNames = function() {
+  var doc = domino.createDocument('');
+
+  var div = doc.createElement('div');
+  div.autofocus.should.equal(false);
+  div.autofocus = true;
+  div.outerHTML.should.equal('<div autofocus=""></div>');
+  div.autofocus = false;
+  div.outerHTML.should.equal('<div></div>');
+
+  div.autocapitalize.should.equal('');
+  div.autocapitalize = 'words';
+  div.outerHTML.should.equal('<div autocapitalize="words"></div>');
+  [
+    ['off', 'none'], ['none', 'none'], ['on', 'sentences'],
+    ['sentences', 'sentences'], ['WORDS', 'words'], ['characters', 'characters'],
+    ['', ''], ['bogus', 'sentences'],
+  ].forEach(function(pair) {
+    div.setAttribute('autocapitalize', pair[0]);
+    div.autocapitalize.should.equal(pair[1]);
+  });
+
+  var script = doc.createElement('script');
+  script.noModule.should.equal(false);
+  script.noModule = true;
+  script.outerHTML.should.equal('<script nomodule=""></script>');
+};
+
+exports.keepsTheOldNamesOfAutofocusAutocapitalizeAndNoModule = function() {
+  var doc = domino.createDocument('');
+
+  var div = doc.createElement('div');
+  div.autoFocus = true;
+  div.autoCapitalize = 'off';
+  div.outerHTML.should.equal('<div autofocus="" autocapitalize="off"></div>');
+  div.autoFocus.should.equal(true);
+  div.autoCapitalize.should.equal('none');
+  div.autoFocus = false;
+  div.outerHTML.should.equal('<div autocapitalize="off"></div>');
+
+  var script = doc.createElement('script');
+  script.nomodule = true;
+  script.outerHTML.should.equal('<script nomodule=""></script>');
+  script.nomodule.should.equal(true);
+  script.nomodule = false;
+  script.outerHTML.should.equal('<script></script>');
+};
+
+exports.formAssociatedElementsDoNotShareReflectedAttributes = function() {
+  var doc = domino.createDocument('');
+
+  // These used to come from the attributes of <button>, <keygen>, <label>
+  // and <object>, which all shared one property object.
+  ['formAction', 'formMethod', 'disabled', 'challenge', 'data', 'useMap']
+    .forEach(function(name) {
+      (name in doc.createElement('progress')).should.equal(false, name);
+    });
+  ('value' in doc.createElement('label')).should.equal(false);
+  ('formAction' in doc.createElement('fieldset')).should.equal(false);
+  ('htmlFor' in doc.createElement('meter')).should.equal(false);
+
+  doc.createElement('fieldset').type.should.equal('fieldset');
+  doc.createElement('output').type.should.equal('output');
+
+  var output = doc.createElement('output');
+  output.htmlFor = 'a b';
+  output.outerHTML.should.equal('<output for="a b"></output>');
+  output.value.should.equal('');
+  output.value = '42';
+  output.outerHTML.should.equal('<output for="a b">42</output>');
+  output.value.should.equal('42');
+
+  var progress = doc.createElement('progress');
+  progress.value.should.equal(0);
+  progress.value = 0.5;
+  progress.outerHTML.should.equal('<progress value="0.5"></progress>');
+
+  var meter = doc.createElement('meter');
+  meter.value = 3;
+  meter.outerHTML.should.equal('<meter value="3"></meter>');
+};
+
+exports.reflectsNewerHtmlAttributes = function() {
+  var doc = domino.createDocument('');
+  function serialize(tag, props) {
+    var el = doc.createElement(tag);
+    Object.keys(props).forEach(function(name) { el[name] = props[name]; });
+    return el.outerHTML;
+  }
+
+  serialize('div', {inert: true}).should.equal('<div inert=""></div>');
+  serialize('div', {popover: 'auto'}).should.equal('<div popover="auto"></div>');
+  serialize('div', {inputMode: 'numeric'}).should.equal('<div inputmode="numeric"></div>');
+  serialize('div', {autocorrect: false}).should.equal('<div autocorrect="off"></div>');
+  serialize('img', {decoding: 'async', fetchPriority: 'high'})
+    .should.equal('<img decoding="async" fetchpriority="high">');
+  serialize('link', {fetchPriority: 'low'}).should.equal('<link fetchpriority="low">');
+  serialize('script', {fetchPriority: 'low'})
+    .should.equal('<script fetchpriority="low"></script>');
+  serialize('details', {name: 'faq'}).should.equal('<details name="faq"></details>');
+  serialize('button', {command: 'show-modal', popoverTargetAction: 'hide'})
+    .should.equal('<button command="show-modal" popovertargetaction="hide"></button>');
+  serialize('input', {webkitdirectory: true, popoverTargetAction: 'show', formAction: '/save'})
+    .should.equal('<input webkitdirectory="" popovertargetaction="show" formaction="/save">');
+  serialize('form', {rel: 'noopener'}).should.equal('<form rel="noopener"></form>');
+  serialize('td', {headers: 'a b'}).should.equal('<td headers="a b"></td>');
+  serialize('video', {playsInline: true, disablePictureInPicture: true, disableRemotePlayback: true})
+    .should.equal('<video playsinline="" disablepictureinpicture="" disableremoteplayback=""></video>');
+  serialize('meter', {min: 0, max: 100, low: 30, high: 80, optimum: 90, value: 42})
+    .should.equal('<meter min="0" max="100" low="30" high="80" optimum="90" value="42"></meter>');
+};
+
+exports.newerHtmlAttributesFollowTheirGetterRules = function() {
+  var doc = domino.createDocument('');
+
+  var div = doc.createElement('div');
+  (div.popover === null).should.equal(true);
+  [['', 'auto'], ['MANUAL', 'manual'], ['hint', 'hint'], ['bogus', 'manual']]
+    .forEach(function(pair) {
+      div.setAttribute('popover', pair[0]);
+      div.popover.should.equal(pair[1]);
+    });
+  div.popover = null;
+  div.hasAttribute('popover').should.equal(false);
+
+  div.autocorrect.should.equal(true);
+  div.setAttribute('autocorrect', 'OFF');
+  div.autocorrect.should.equal(false);
+  ['password', 'url', 'email'].forEach(function(type) {
+    var input = doc.createElement('input');
+    input.type = type;
+    input.autocorrect.should.equal(false, type);
+  });
+  domino.createDocument('<form autocorrect="off"><input></form>')
+    .querySelector('input').autocorrect.should.equal(false);
+  domino.createDocument('<form autocorrect="off"><input autocorrect="bogus"></form>')
+    .querySelector('input').autocorrect.should.equal(true);
+
+  var textarea = doc.createElement('textarea');
+  textarea.setAttribute('inputmode', 'latin');
+  textarea.inputMode.should.equal('');
+
+  var button = doc.createElement('button');
+  button.popoverTargetAction.should.equal('toggle');
+
+  var img = doc.createElement('img');
+  img.fetchPriority.should.equal('auto');
+  img.decoding.should.equal('auto');
+  img.setAttribute('fetchpriority', 'bogus');
+  img.fetchPriority.should.equal('auto');
+
+  var meter = doc.createElement('meter');
+  [meter.min, meter.max, meter.value, meter.low, meter.high, meter.optimum]
+    .should.eql([0, 1, 0, 0, 1, 0.5]);
+};
