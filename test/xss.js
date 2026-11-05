@@ -105,6 +105,304 @@ exports.fp170_37 = function () {
   );
 };
 
+exports.htmlStyleTextMovedIntoForeignContentIsEscaped = function () {
+  const SVG = 'http://www.w3.org/2000/svg';
+  const payload =
+    '--literal:"&copy;\u00A0";/*<img><script>alert("foreign-style-xss")</script>*/';
+  const document = domino.createDocument('');
+  const svg = document.createElementNS(SVG, 'svg');
+  const group = document.createElementNS(SVG, 'g');
+  const wrapper = document.createElement('g');
+  const style = document.createElement('style');
+  const marker = document.createElement('span');
+  style.textContent = payload;
+  marker.textContent = 'kept';
+  style.appendChild(marker);
+  wrapper.appendChild(style);
+  svg.appendChild(group);
+  document.body.appendChild(svg);
+  document.body.appendChild(wrapper);
+  document.serialize().should.containEql('<style>' + payload);
+  group.appendChild(wrapper);
+
+  const html = document.serialize();
+  html.should.containEql(
+    '--literal:"&amp;copy;&nbsp;";/*&lt;img&gt;&lt;script&gt;',
+  );
+  html.should.containEql('&lt;/script&gt;*/');
+  html.should.containEql('<span>kept</span>');
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
+const HTML_ELEMENT = null;
+const SVG = 'http://www.w3.org/2000/svg';
+const MATHML = 'http://www.w3.org/1998/Math/MathML';
+const styleCss =
+  '@media (width < 600px) { svg > g { --label: "&"; } }' +
+  '/*<img><script>alert(1)</script>*/';
+const serializedStyleCss =
+  '@media (width &lt; 600px) { svg &gt; g { --label: "&amp;"; } }' +
+  '/*&lt;img&gt;&lt;script&gt;alert(1)&lt;/script&gt;*/';
+// Placeholder for a <style> with `styleCss` in `serializeStyleTree()` trees.
+const STYLE = {};
+
+// Appends the way Angular's DomRenderer does: the children of a <template> go
+// to its content.
+function append(parent, child) {
+  (parent.localName === 'template' && parent.content ?
+    parent.content : parent).appendChild(child);
+}
+
+function el(namespace, name, children = [], attributes = {}) {
+  return { namespace, name, children, attributes };
+}
+
+function serializeStyleTree(tree) {
+  const document = domino.createDocument('');
+  let style;
+  const build = (parent, node) => {
+    if (node === STYLE) {
+      style = document.createElement('style');
+      style.textContent = styleCss;
+      append(parent, style);
+      return;
+    }
+    const element = node.namespace ?
+      document.createElementNS(node.namespace, node.name) :
+      document.createElement(node.name);
+    for (const attribute in node.attributes) {
+      element.setAttribute(attribute, node.attributes[attribute]);
+    }
+    append(parent, element);
+    for (const child of node.children) {
+      build(element, child);
+    }
+  };
+  build(document.body, tree);
+  return { html: document.serialize(), style };
+}
+
+function createStyleDocument(ancestors) {
+  const document = domino.createDocument('');
+  let parent = document.body;
+  for (const [namespace, name, attributes = {}] of ancestors) {
+    const element = namespace ?
+      document.createElementNS(namespace, name) : document.createElement(name);
+    for (const attribute in attributes) {
+      element.setAttribute(attribute, attributes[attribute]);
+    }
+    append(parent, element);
+    parent = element;
+  }
+
+  const style = document.createElement('style');
+  style.textContent = styleCss;
+  append(parent, style);
+  return { document, style };
+}
+
+function assertStyleSerialization(ancestors, expected) {
+  const { document, style } = createStyleDocument(ancestors);
+  const serialized = '<style>' + expected + '</style>';
+  document.body.serialize().should.containEql(serialized);
+  style.outerHTML.should.equal(serialized);
+  return document;
+}
+
+exports.rawContentIsEscapedOnlyWhereParsedAsForeignContent = function () {
+  const escaped = [
+    [[SVG, 'svg']],
+    [[SVG, 'svg'], [HTML_ELEMENT, 'g']],
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [HTML_ELEMENT, 'svg']],
+    [[SVG, 'svg'], [HTML_ELEMENT, 'div'], [SVG, 'svg']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'mtext'], [HTML_ELEMENT, 'mglyph']],
+    [[MATHML, 'math'],
+      [MATHML, 'annotation-xml', { encoding: 'application/xml' }]],
+    // A parser only reads an integration point in its own namespace.
+    [[MATHML, 'math'], [SVG, 'foreignObject']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'title']],
+    [[SVG, 'svg'], [MATHML, 'mtext']],
+    [[SVG, 'svg'],
+      [HTML_ELEMENT, 'annotation-xml', { encoding: 'text/html' }]],
+    // Template contents are serialized in place.
+    [[SVG, 'svg'], [HTML_ELEMENT, 'template']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'template']],
+  ];
+  const raw = [
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [HTML_ELEMENT, 'div']],
+    [[SVG, 'svg'], [SVG, 'foreignObject'], [SVG, 'a']],
+    [[MATHML, 'math'], [HTML_ELEMENT, 'mtext']],
+    [[MATHML, 'math'],
+      [MATHML, 'annotation-xml', { encoding: 'text/html' }]],
+    // `div` pops a parser out of foreign content.
+    [[MATHML, 'math'],
+      [MATHML, 'annotation-xml', { encoding: 'application/xml' }],
+      [HTML_ELEMENT, 'div']],
+  ];
+  for (const ancestors of escaped) {
+    assertStyleSerialization(ancestors, serializedStyleCss);
+  }
+  for (const ancestors of raw) {
+    assertStyleSerialization(ancestors, styleCss);
+  }
+};
+
+exports.rawContentIsEscapedOnceAParserMayLeaveTheTree = async function () {
+  const icon = el(SVG, 'svg', [el(SVG, 'g', [el(HTML_ELEMENT, 'span')])]);
+  const serialized = '<style>' + serializedStyleCss + '</style>';
+  const trees = [
+    // The <span> pops a parser out of the icon back to the <foreignObject>,
+    // and the stray </svg> of the icon then closes the <svg> around it.
+    [el(SVG, 'svg', [el(SVG, 'svg', [el(SVG, 'foreignObject', [icon, STYLE])])])],
+    // The ignored <tr> leaves a stray </tr> that closes the foreign <tr>.
+    [el(SVG, 'svg', [el(HTML_ELEMENT, 'tr', [el(SVG, 'foreignObject', [
+      el(HTML_ELEMENT, 'tr'), STYLE])])])],
+    // <tr> is ignored outside of a table, so <mglyph> stays MathML.
+    [el(MATHML, 'math', [el(MATHML, 'mtext', [
+      el(HTML_ELEMENT, 'tr', [el(MATHML, 'mglyph', [STYLE])])])]), true],
+    // <table> pops a parser out of the <svg>, so <math> starts MathML.
+    [el(SVG, 'svg', [el(HTML_ELEMENT, 'table'),
+      el(MATHML, 'math', [el(HTML_ELEMENT, 'title', [STYLE])])]), true],
+    // <div> closes the <p> and <textarea> is ended by the one inside it, so
+    // <mglyph> is read at the <mtext>, where it stays MathML.
+    [el(MATHML, 'math', [el(MATHML, 'mtext', [el(HTML_ELEMENT, 'p', [
+      el(HTML_ELEMENT, 'div'), el(MATHML, 'mglyph', [STYLE])])])]), true],
+    [el(MATHML, 'math', [el(MATHML, 'mtext', [el(HTML_ELEMENT, 'textarea', [
+      el(HTML_ELEMENT, 'textarea'), el(MATHML, 'mglyph', [STYLE])])])]), true],
+    // The inner <title> ends the HTML one early and its stray </title> then
+    // closes the SVG <title>.
+    [el(SVG, 'svg', [el(SVG, 'title', [
+      el(HTML_ELEMENT, 'title', [el(HTML_ELEMENT, 'title')]), STYLE])])],
+    // A <form> inside a form is ignored, its stray </form> closes the foreign
+    // one.
+    [el(HTML_ELEMENT, 'form', [el(SVG, 'svg', [el(SVG, 'form', [
+      el(SVG, 'foreignObject', [el(HTML_ELEMENT, 'form'), STYLE])])])])],
+    // <b> pops the <mglyph> back to the <mtext>, and its stray </mglyph> then
+    // closes the outer one.
+    [el(MATHML, 'math', [el(MATHML, 'mglyph', [el(MATHML, 'mtext', [
+      el(MATHML, 'mglyph', [el(HTML_ELEMENT, 'b')]), STYLE])])])],
+    // The inner <noembed> ends the outer one, whose text the <svg> start tag
+    // was part of, so the </svg> after it closes the <svg> around.
+    [el(SVG, 'svg', [el(SVG, 'svg', [el(SVG, 'foreignObject', [
+      el(HTML_ELEMENT, 'noembed', [el(SVG, 'svg', [el(HTML_ELEMENT, 'noembed')]),
+        STYLE])])])])],
+    // <div> closes the <p> and the <a> in it, so the stray </a> reaches the
+    // <foreignObject> and closes the SVG <a> around it.
+    [el(SVG, 'svg', [el(SVG, 'a', [el(SVG, 'foreignObject', [
+      el(HTML_ELEMENT, 'p', [el(HTML_ELEMENT, 'a', [el(HTML_ELEMENT, 'div')]),
+        STYLE])])], { href: '/x' })])],
+    // An <input> has no end tag, but it is not void in foreign content, so it
+    // stays open: the stray </input> then closes it with the <foreignObject>
+    // in it, and in <annotation-xml> it makes the <svg> after it MathML.
+    [el(SVG, 'svg', [el(HTML_ELEMENT, 'input'), el(SVG, 'foreignObject', [
+      el(SVG, 'input'), STYLE])])],
+    [el(MATHML, 'math', [el(MATHML, 'annotation-xml', [
+      el(HTML_ELEMENT, 'input'), el(SVG, 'svg', [el(SVG, 'foreignObject', [
+        STYLE])])])])],
+  ];
+  for (const [tree, fromAncestors] of trees) {
+    const { html, style } = serializeStyleTree(tree);
+    html.should.containEql(serialized);
+    if (fromAncestors) style.outerHTML.should.equal(serialized);
+    (await alertFired(html)).should.be.false('alert fired for: ' + html);
+  }
+
+  // <hr> pops the parser out of the <math>, so the <script> is raw text again
+  // and the </script> in what it contains still has to be escaped.
+  const document = domino.createDocument('');
+  const math = document.createElementNS(MATHML, 'math');
+  const script = document.createElement('script');
+  const italic = document.createElement('i');
+  const style = document.createElement('style');
+  style.textContent = '</script><img src=x onerror=alert(1)>';
+  italic.appendChild(style);
+  script.appendChild(italic);
+  math.appendChild(document.createElement('hr'));
+  math.appendChild(script);
+  document.body.appendChild(math);
+  const html = document.serialize();
+  html.should.containEql('<style>&lt;/script><img');
+  (await alertFired(html)).should.be.false('alert fired for: ' + html);
+
+  // Once the outermost <svg> is closed a parser follows the tree again.
+  serializeStyleTree(el(HTML_ELEMENT, 'div', [trees[0][0], STYLE])).html
+    .should.containEql('</svg></svg><style>' + styleCss + '</style>');
+  // Icons, void elements, tables and links whose SVG namesake is closed are
+  // parsed as serialized.
+  for (const tree of [
+    el(SVG, 'svg', [el(SVG, 'g', [el(SVG, 'foreignObject', [
+      el(SVG, 'svg', [el(SVG, 'path')]), el(HTML_ELEMENT, 'input'),
+      el(HTML_ELEMENT, 'table', [el(HTML_ELEMENT, 'tr', [el(HTML_ELEMENT, 'td')])]),
+      STYLE])])]),
+    el(SVG, 'svg', [el(SVG, 'svg', [el(SVG, 'foreignObject', [
+      el(SVG, 'svg', [el(SVG, 'path')]), STYLE])])]),
+    el(SVG, 'svg', [el(SVG, 'a', [el(SVG, 'path')]), el(SVG, 'foreignObject', [
+      el(HTML_ELEMENT, 'a'), STYLE])]),
+  ]) {
+    serializeStyleTree(tree).html
+      .should.containEql('<style>' + styleCss + '</style>');
+  }
+};
+
+exports.fallbackRawContentIsEscapedInForeignContent = function () {
+  // In foreign content a kept comment opener comments out what follows, up to
+  // a `-->` that may come from raw text further down.
+  const document = domino.createDocument('');
+  const svg = document.createElementNS(SVG, 'svg');
+  const noembed = document.createElement('noembed');
+  const style = document.createElement('style');
+  noembed.textContent = '<!--';
+  style.textContent = '--><img src=x onerror=alert(1)>';
+  svg.appendChild(noembed);
+  document.body.appendChild(svg);
+  document.body.appendChild(style);
+
+  const html = document.serialize();
+  html.should.containEql('<noembed>&lt;!--</noembed>');
+  return alertFired(html).should.eventually.be.false('alert fired for: ' + html);
+};
+
+exports.annotationXmlEncodingChangeUpdatesRawContentContext = function () {
+  const document = assertStyleSerialization(
+    [[MATHML, 'math'],
+      [MATHML, 'annotation-xml', { ENCODING: 'TEXT/HTML' }]],
+    styleCss,
+  );
+  document.querySelector('annotation-xml')
+    .setAttribute('ENCODING', 'application/xml');
+  document.body.serialize().should.containEql(
+    '<style>' + serializedStyleCss + '</style>',
+  );
+};
+
+exports.detachedRawContentUsesSerializedRootContext = function () {
+  for (const [namespace, name] of [
+    [SVG, 'g'],
+    [HTML_ELEMENT, 'svg'],
+    ['http://www.w3.org/1999/xhtml', 'SvG'],
+  ]) {
+    const document = domino.createDocument('');
+    const root = namespace ?
+      document.createElementNS(namespace, name) : document.createElement(name);
+    const style = document.createElement('style');
+    style.textContent = styleCss;
+    root.appendChild(style);
+    root.outerHTML
+      .should.containEql('<style>' + serializedStyleCss + '</style>');
+  }
+};
+
+exports.serializedForeignStylePreservesCssSemantics = async function () {
+  const html = createStyleDocument([[SVG, 'svg'], [SVG, 'g']]).document
+    .serialize();
+  const page = await browser.newPage();
+  page.on('dialog', (dialog) => dialog.dismiss());
+  await page.setContent(html);
+  (await page.$eval('svg style', (element) => element.textContent))
+    .should.equal(styleCss);
+  await page.close();
+};
+
 exports.escapeAngleBracketsInDivAttr = function () {
   var document = domino.createDocument(
     `<div>You don't have JS! Click<a href="#" title="Search for </div><script>alert(1)</script> without JS">here</a> to go to the no-js website.</div>`,
