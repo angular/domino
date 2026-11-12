@@ -2483,3 +2483,51 @@ exports.newerHtmlAttributesFollowTheirGetterRules = function() {
   [meter.min, meter.max, meter.value, meter.low, meter.high, meter.optimum]
     .should.eql([0, 1, 0, 0, 1, 0.5]);
 };
+
+exports.nativeEventDispatch = function() {
+  if (typeof Event === 'undefined' || typeof CustomEvent === 'undefined') {
+    return;
+  }
+
+  domino.impl.Event.should.equal(globalThis.Event);
+  domino.impl.CustomEvent.should.equal(globalThis.CustomEvent);
+
+  var doc = domino.createDocument('<html><body><div id="parent"><button id="btn">Click</button></div></body></html>');
+  var parent = doc.getElementById('parent');
+  var btn = doc.getElementById('btn');
+
+  var log = [];
+  parent.addEventListener('custom', function(e) {
+    log.push('parent:' + e.type + ':' + e.detail.data);
+  });
+  btn.addEventListener('custom', function(e) {
+    log.push('btn:' + e.type + ':' + e.detail.data);
+    e.target.should.equal(btn);
+    e.currentTarget.should.equal(btn);
+  });
+
+  var event = new CustomEvent('custom', { bubbles: true, cancelable: true, detail: { data: 'test' } });
+  var dispatched = btn.dispatchEvent(event);
+  dispatched.should.equal(true);
+  log.should.eql(['btn:custom:test', 'parent:custom:test']);
+
+  // stopPropagation
+  log = [];
+  btn.addEventListener('stopped', function(e) {
+    log.push('btn');
+    e.stopPropagation();
+  });
+  parent.addEventListener('stopped', function(e) {
+    log.push('parent');
+  });
+  btn.dispatchEvent(new CustomEvent('stopped', { bubbles: true }));
+  log.should.eql(['btn']);
+
+  // preventDefault
+  btn.addEventListener('cancel', function(e) {
+    e.preventDefault();
+  });
+  var cancelEvent = new CustomEvent('cancel', { cancelable: true });
+  btn.dispatchEvent(cancelEvent);
+  cancelEvent.defaultPrevented.should.equal(true);
+};
