@@ -2483,3 +2483,134 @@ exports.newerHtmlAttributesFollowTheirGetterRules = function() {
   [meter.min, meter.max, meter.value, meter.low, meter.high, meter.optimum]
     .should.eql([0, 1, 0, 0, 1, 0.5]);
 };
+
+exports.nativeEventDispatch = function() {
+  if (typeof Event === 'undefined' || typeof CustomEvent === 'undefined') {
+    return;
+  }
+
+  domino.impl.Event.should.equal(globalThis.Event);
+  domino.impl.CustomEvent.should.equal(globalThis.CustomEvent);
+
+  var win = domino.createWindow('<html><body><div id="parent"><button id="btn">Click</button></div></body></html>');
+  var doc = win.document;
+  var parent = doc.getElementById('parent');
+  var btn = doc.getElementById('btn');
+
+  var log = [];
+  parent.addEventListener('custom', function(e) {
+    log.push('parent:' + e.type + ':' + e.detail.data);
+  });
+  btn.addEventListener('custom', function(e) {
+    log.push('btn:' + e.type + ':' + e.detail.data);
+    e.target.should.equal(btn);
+    e.currentTarget.should.equal(btn);
+  });
+
+  var event = new CustomEvent('custom', { bubbles: true, cancelable: true, detail: { data: 'test' } });
+  var dispatched = btn.dispatchEvent(event);
+  dispatched.should.equal(true);
+  log.should.eql(['btn:custom:test', 'parent:custom:test']);
+
+  // stopPropagation
+  log = [];
+  btn.addEventListener('stopped', function(e) {
+    log.push('btn');
+    e.stopPropagation();
+  });
+  parent.addEventListener('stopped', function(e) {
+    log.push('parent');
+  });
+  btn.dispatchEvent(new CustomEvent('stopped', { bubbles: true }));
+  log.should.eql(['btn']);
+
+  // stopImmediatePropagation
+  log = [];
+  btn.addEventListener('immediate', function(e) {
+    log.push('btn1');
+    e.stopImmediatePropagation();
+  });
+  btn.addEventListener('immediate', function(e) {
+    log.push('btn2');
+  });
+  parent.addEventListener('immediate', function(e) {
+    log.push('parent');
+  });
+  btn.dispatchEvent(new CustomEvent('immediate', { bubbles: true }));
+  log.should.eql(['btn1']);
+
+  // preventDefault
+  btn.addEventListener('cancel', function(e) {
+    e.preventDefault();
+  });
+  var cancelEvent = new CustomEvent('cancel', { cancelable: true });
+  btn.dispatchEvent(cancelEvent);
+  cancelEvent.defaultPrevented.should.equal(true);
+
+  // createEvent('Event') + initEvent
+  var uninitEvent = doc.createEvent('Event');
+  (function() {
+    btn.dispatchEvent(uninitEvent);
+  }).should.throw();
+
+  var createdEvent = doc.createEvent('Event');
+  createdEvent.initEvent('created', true, true);
+  var createdLog = [];
+  parent.addEventListener('created', function(e) {
+    createdLog.push('parent:' + e.type);
+  });
+  btn.addEventListener('created', function(e) {
+    createdLog.push('btn:' + e.type);
+  });
+  btn.dispatchEvent(createdEvent).should.equal(true);
+  createdLog.should.eql(['btn:created', 'parent:created']);
+
+  // createEvent('CustomEvent') + initCustomEvent
+  var uninitCustomEvent = doc.createEvent('CustomEvent');
+  (function() {
+    btn.dispatchEvent(uninitCustomEvent);
+  }).should.throw();
+
+  var createdCustom = doc.createEvent('CustomEvent');
+  createdCustom.initCustomEvent('custom_created', true, true, { payload: 123 });
+  var customLog = [];
+  parent.addEventListener('custom_created', function(e) {
+    customLog.push('parent:' + e.type + ':' + e.detail.payload);
+  });
+  btn.dispatchEvent(createdCustom).should.equal(true);
+  customLog.should.eql(['parent:custom_created:123']);
+
+  // UIEvent & MouseEvent prototype inheritance and btn.click()
+  var uiEvent = new domino.impl.UIEvent('resize');
+  (uiEvent instanceof domino.impl.Event).should.equal(true);
+  (uiEvent instanceof domino.impl.UIEvent).should.equal(true);
+
+  var mouseEvent = new domino.impl.MouseEvent('click');
+  (mouseEvent instanceof domino.impl.Event).should.equal(true);
+  (mouseEvent instanceof domino.impl.UIEvent).should.equal(true);
+  (mouseEvent instanceof domino.impl.MouseEvent).should.equal(true);
+
+  var clickEventReceived = null;
+  btn.addEventListener('click', function(e) {
+    clickEventReceived = e;
+  });
+  btn.click();
+  (clickEventReceived !== null).should.equal(true);
+  (clickEventReceived instanceof domino.impl.Event).should.equal(true);
+  (clickEventReceived instanceof domino.impl.MouseEvent).should.equal(true);
+  clickEventReceived.type.should.equal('click');
+
+  // Re-dispatching the same native Event instance across multiple targets
+  var redispatchLog = [];
+  btn.addEventListener('redispatch', function(e) {
+    redispatchLog.push('btn:' + e.target.id);
+  });
+  doc.defaultView.addEventListener('redispatch', function(e) {
+    redispatchLog.push('view:' + (e.target === doc.defaultView ? 'view' : e.target.id));
+  });
+
+  var sharedEvent = new Event('redispatch');
+  btn.dispatchEvent(sharedEvent);
+  doc.defaultView.dispatchEvent(sharedEvent);
+  redispatchLog.should.eql(['btn:btn', 'view:view']);
+};
