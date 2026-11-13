@@ -2613,4 +2613,28 @@ exports.nativeEventDispatch = function() {
   btn.dispatchEvent(sharedEvent);
   doc.defaultView.dispatchEvent(sharedEvent);
   redispatchLog.should.eql(['btn:btn', 'view:view']);
+
+  // KeyboardEvent
+  var keyEvent = new domino.impl.KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', altKey: true });
+  (keyEvent instanceof domino.impl.Event).should.equal(true);
+  (keyEvent instanceof domino.impl.UIEvent).should.equal(true);
+  (keyEvent instanceof domino.impl.KeyboardEvent).should.equal(true);
+  keyEvent.key.should.equal('ArrowDown');
+  keyEvent.code.should.equal('ArrowDown');
+  keyEvent.altKey.should.equal(true);
+  keyEvent.getModifierState('Alt').should.equal(true);
+  keyEvent.getModifierState('Control').should.equal(false);
+
+  var keyEventReceived = null;
+  btn.addEventListener('keydown', function(e) {
+    keyEventReceived = e;
+  });
+  btn.dispatchEvent(keyEvent);
+  (keyEventReceived !== null).should.equal(true);
+  keyEventReceived.key.should.equal('ArrowDown');
+
+  var createdKeyEvent = doc.createEvent('KeyboardEvent');
+  createdKeyEvent.initKeyboardEvent('keyup', true, true, null, 'a', 0, false, false, false, false);
+  createdKeyEvent.type.should.equal('keyup');
+  createdKeyEvent.key.should.equal('a');
 };
