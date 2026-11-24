@@ -2638,3 +2638,127 @@ exports.nativeEventDispatch = function() {
   createdKeyEvent.type.should.equal('keyup');
   createdKeyEvent.key.should.equal('a');
 };
+
+exports.styleSetPropertyValidation = function() {
+  function setStyle(prop, val, priority) {
+    var doc = domino.createDocument('<div></div>');
+    var el = doc.querySelector('div');
+    if (priority !== undefined) {
+      el.style.setProperty(prop, val, priority);
+    } else {
+      el.style.setProperty(prop, val);
+    }
+    return el.getAttribute('style');
+  }
+
+  // Reject multi-property injection (including `data:` guard bypasses and parser differentials)
+  var rejected = [
+    // data: substring bypasses
+    ['color', "red; position: fixed; inset: 0px; z-index: 2147483647; background-image: url('https://attacker.example/phish.png?data:')"],
+    ['width', '100px; position: fixed; top: 10px; z-index: 2147483646; --bypass: data:; --pad: 1px'],
+    ['--accent', 'blue; position: fixed; top: 20px; z-index: 2147483645; --bypass: data:'],
+    // Top-level semicolons
+    ['color', 'red; position: fixed'],
+    ['color', 'red;'],
+    ['color', '; position: fixed'],
+    ['color', 'red; color: blue'],
+    ['background-image', 'url(data:image/png;base64,AAA); position: fixed'],
+    ['background-image', 'url("data:image/png;base64,AAA"); position: fixed'],
+    // Parentheses inside quotes / unmatched delimiters
+    ['color', "'(' ; position: fixed"],
+    ['color', '"(" ; position: fixed'],
+    ['background-image', 'url("("); position: fixed'],
+    ['color', 'red) ; position: fixed'],
+    ['color', 'red] ; position: fixed'],
+    ['color', 'red} ; position: fixed'],
+    ['color', 'rgb(1, 2'],
+    ['grid-template-columns', '[main-start'],
+    ['--x', '{'],
+    ['--x', '([)]'],
+    // Unclosed strings, escaped backslashes before closing quote, unescaped newlines in strings
+    ['content', '"hello'],
+    ['content', "'hello"],
+    ['content', '"hello\\"'],
+    ['content', '"foo\\\\" ; position: fixed'],
+    ['content', "'foo\\\\' ; position: fixed"],
+    ['content', '"foo\n; position: fixed; --x: "'],
+    ['content', '"foo\r; position: fixed; --x: "'],
+    ['content', '"foo\f; position: fixed; --x: "'],
+    ['content', "'foo\n; position: fixed; --x: '"],
+    // CSS comments
+    ['color', "/* ' */ ; position: fixed"],
+    ['color', '/* ( */ ; position: fixed'],
+    ['color', 'red /* unclosed comment'],
+    // Unquoted url(...) parser differentials
+    ['background-image', 'url(https://example.com/*); position: fixed; --a: /* */ )'],
+    ['background-image', "url(https://example.com/'foo); position: fixed; --a: '"],
+    ['background-image', 'url(https://example.com/"foo); position: fixed; --a: "'],
+    ['background-image', 'url(https://example.com/(foo); position: fixed; --a: )'],
+    ['background-image', 'url(https://example.com/a b)'],
+    ['background-image', 'url(https://example.com/a\nb)'],
+    ['background-image', 'url(data:image/png;base64,AAA'],
+    // Escaped url( obfuscation
+    ['background-image', '\\75 rl(https://example.com/*); position: fixed; --a: /* */ )'],
+    ['background-image', '\\75\\72\\6c(https://example.com/*); position: fixed; --a: /* */ )'],
+    // Trailing / invalid backslashes
+    ['color', 'red\\'],
+    ['color', 'red\\\\\\'],
+    ['color', 'red\\\n; position: fixed'],
+    // !important inside value
+    ['color', 'red !important'],
+    ['color', 'red !IMPORTANT'],
+    ['color', 'red ! important'],
+    ['color', 'red !/*c*/important /* trailing */'],
+    ['color', 'red !\\69 mportant'],
+    // Invalid property names
+    ['color: red; position', 'fixed'],
+    ['color; position', 'fixed'],
+    ['', 'red'],
+  ];
+
+  rejected.forEach(function(entry) {
+    (setStyle(entry[0], entry[1]) === null).should.equal(true);
+  });
+
+  // Accept legitimate single-property CSS values (including semicolons inside strings/urls/parens/comments)
+  var accepted = [
+    ['color', 'red', 'color: red;'],
+    ['width', '100px', 'width: 100px;'],
+    ['width', 'calc(100% - 20px)', 'width: calc(100% - 20px);'],
+    ['color', 'var(--my-color, rgba(0, 0, 0, 0.5))', 'color: var(--my-color, rgba(0, 0, 0, 0.5));'],
+    ['background-image', 'url(data:image/png;base64,iVBORw0KGgo=)', 'background-image: url(data:image/png;base64,iVBORw0KGgo=);'],
+    ['background-image', 'URL(data:image/png;base64,iVBORw0KGgo=)', 'background-image: URL(data:image/png;base64,iVBORw0KGgo=);'],
+    ['background-image', 'url(  data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C/svg%3E  )', 'background-image: url(  data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C/svg%3E  );'],
+    ['background-image', 'url("data:image/png;base64,iVBORw0KGgo=")', 'background-image: url("data:image/png;base64,iVBORw0KGgo=");'],
+    ['background-image', "url('data:image/png;base64,iVBORw0KGgo=')", "background-image: url('data:image/png;base64,iVBORw0KGgo=');"],
+    ['background-image', 'url("https://example.com/a;b=1")', 'background-image: url("https://example.com/a;b=1");'],
+    ['background-image', 'url("foo\\"bar;baz")', 'background-image: url("foo\\"bar;baz");'],
+    ['background-image', 'url("foo\\\\")', 'background-image: url("foo\\\\");'],
+    ['background-image', 'url()', 'background-image: url();'],
+    ['background-image', 'linear-gradient(to right, red, blue), url(data:image/png;base64,AAA)', 'background-image: linear-gradient(to right, red, blue), url(data:image/png;base64,AAA);'],
+    ['content', '"a; b"', 'content: "a; b";'],
+    ['content', "'hello; world'", "content: 'hello; world';"],
+    ['content', '"foo !important"', 'content: "foo !important";'],
+    ['font-family', '"Helvetica Neue", Arial, sans-serif', 'font-family: "Helvetica Neue", Arial, sans-serif;'],
+    ['grid-template-columns', '[main-start] 1fr [main-end]', 'grid-template-columns: [main-start] 1fr [main-end];'],
+    ['color', 'red /* comment ; with semicolon */', 'color: red /* comment ; with semicolon */;'],
+    ['--custom', '"a; b"', '--custom: "a; b";'],
+    ['--custom', '(a; b)', '--custom: (a; b);'],
+    ['font-family', 'Foo\\;Bar', 'font-family: Foo\\;Bar;'],
+  ];
+
+  accepted.forEach(function(entry) {
+    setStyle(entry[0], entry[1]).should.equal(entry[2]);
+  });
+
+  // Explicit priority argument still works
+  setStyle('color', 'red', 'important').should.equal('color: red !important;');
+
+  // Proxy property assignment enforces the same validation
+  var doc = domino.createDocument('<a id="badge">hi</a>');
+  var a = doc.getElementById('badge');
+  a.style.color = "red; position: fixed; inset: 0px; z-index: 2147483647; background-image: url('https://attacker.example/phish.png?data:')";
+  (a.getAttribute('style') === null).should.equal(true);
+  a.style.backgroundImage = 'url(data:image/png;base64,iVBORw0KGgo=)';
+  a.getAttribute('style').should.equal('background-image: url(data:image/png;base64,iVBORw0KGgo=);');
+};
