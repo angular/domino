@@ -2704,9 +2704,21 @@ exports.styleSetPropertyValidation = function() {
     ['background-image', "a<!--url(https://a.example/'x);position:fixed;--a:')"],
     ['color', 'calc(<!--url(a/*)); position: fixed; --a: */))'],
     // Non-ASCII non-ident code points and lone surrogates before url(...)
-    ['background-image', '\u00a0url(a/*); position: fixed; --a: */)'],
+    ['background-image', 'a\u00a0url(a/*); position: fixed; --a: */)'],
     ['background-image', '\u200burl(a/*); position: fixed; --a: */)'],
     ['background-image', '\ud800url(a/*); position: fixed; --a: */)'],
+    // Inverse-direction url(...) differentials (#url, @url, \x00, lone surrogates, non-ASCII non-ident)
+    ['background-image', '#url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '@url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '##url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '@@url(a/*) "*/); position: fixed; --a: "'],
+    ['color', 'calc(#url(a/*) "*/); position: fixed; --a: ")'],
+    ['color', 'calc(@url(a/*) "*/); position: fixed; --a: ")'],
+    ['background-image', '\x00url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '\ud800url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '\udc00url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '\u200burl(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', 'a\u00a0url(a/*) "*/); position: fixed; --a: "'],
     // Unclosed hex-escape inputs (must reject linearly without backtracking)
     ['content', '"' + '\\aaaaaa'.repeat(25)],
     ['background-image', 'url(' + '\\aaaaaa'.repeat(25)],
@@ -2815,6 +2827,13 @@ exports.styleSetPropertyValidation = function() {
     ['--x', 'calc(")" ; position: fixed; --a: 1)'],
     ['--x', '[a; position: fixed]'],
     ['--x', '{a; position: fixed}'],
+    ['background-image', 'a\u00e9url(a/* ); position: fixed; --a: */)'],
+    ['background-image', 'a\ud83d\ude00url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '\\<!--url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '#url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '@url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '#\\61 url(a/* ); position: fixed; --a: */)'],
+    ['--x', 'foo\\!important'],
   ];
   roundTripCases.forEach(function(entry) {
     var d1 = domino.createDocument('<div></div>');
@@ -2823,6 +2842,7 @@ exports.styleSetPropertyValidation = function() {
     var d2 = domino.createDocument(e1.outerHTML);
     var e2 = d2.querySelector('div');
     e2.style.getPropertyValue(entry[0]).should.equal(entry[1]);
+    e2.style.getPropertyPriority(entry[0]).should.equal('');
     e2.style.getPropertyValue('position').should.equal('');
     e2.style.removeProperty(entry[0]);
     e2.getAttribute('style').should.equal('');
