@@ -2638,3 +2638,235 @@ exports.nativeEventDispatch = function() {
   createdKeyEvent.type.should.equal('keyup');
   createdKeyEvent.key.should.equal('a');
 };
+
+exports.styleSetPropertyValidation = function() {
+  function setStyle(prop, val, priority) {
+    var doc = domino.createDocument('<div></div>');
+    var el = doc.querySelector('div');
+    if (priority !== undefined) {
+      el.style.setProperty(prop, val, priority);
+    } else {
+      el.style.setProperty(prop, val);
+    }
+    return el.getAttribute('style');
+  }
+
+  // Reject multi-property injection (including `data:` guard bypasses and parser differentials)
+  var rejected = [
+    // data: substring bypasses
+    ['color', "red; position: fixed; inset: 0px; z-index: 2147483647; background-image: url('https://attacker.example/phish.png?data:')"],
+    ['width', '100px; position: fixed; top: 10px; z-index: 2147483646; --bypass: data:; --pad: 1px'],
+    ['--accent', 'blue; position: fixed; top: 20px; z-index: 2147483645; --bypass: data:'],
+    // Top-level semicolons
+    ['color', 'red; position: fixed'],
+    ['color', 'red;'],
+    ['color', '; position: fixed'],
+    ['color', 'red; color: blue'],
+    ['background-image', 'url(data:image/png;base64,AAA); position: fixed'],
+    ['background-image', 'url("data:image/png;base64,AAA"); position: fixed'],
+    // Parentheses inside quotes / unmatched delimiters
+    ['color', "'(' ; position: fixed"],
+    ['color', '"(" ; position: fixed'],
+    ['background-image', 'url("("); position: fixed'],
+    ['color', 'red) ; position: fixed'],
+    ['color', 'red] ; position: fixed'],
+    ['color', 'red} ; position: fixed'],
+    ['color', 'rgb(1, 2'],
+    ['grid-template-columns', '[main-start'],
+    ['--x', '{'],
+    ['--x', '([)]'],
+    // Unclosed strings, escaped backslashes before closing quote, unescaped newlines in strings
+    ['content', '"hello'],
+    ['content', "'hello"],
+    ['content', '"hello\\"'],
+    ['content', '"foo\\\\" ; position: fixed'],
+    ['content', "'foo\\\\' ; position: fixed"],
+    ['content', '"foo\n; position: fixed; --x: "'],
+    ['content', '"foo\r; position: fixed; --x: "'],
+    ['content', '"foo\f; position: fixed; --x: "'],
+    ['content', "'foo\n; position: fixed; --x: '"],
+    // CSS comments
+    ['color', "/* ' */ ; position: fixed"],
+    ['color', '/* ( */ ; position: fixed'],
+    ['color', 'red /* unclosed comment'],
+    ['color', '/*/'],
+    // Unquoted url(...) parser differentials
+    ['background-image', 'url(https://example.com/*); position: fixed; --a: /* */ )'],
+    ['background-image', "url(https://example.com/'foo); position: fixed; --a: '"],
+    ['background-image', 'url(https://example.com/"foo); position: fixed; --a: "'],
+    ['background-image', 'url(https://example.com/(foo); position: fixed; --a: )'],
+    ['background-image', 'url(https://example.com/a b)'],
+    ['background-image', 'url(https://example.com/a\nb)'],
+    ['background-image', 'url(data:image/png;base64,AAA'],
+    // <CDO-token> `<!--` before url(...) bypasses
+    ['background-image', "<!--url(https://a.example/'x);position:fixed;--a:')"],
+    ['background-image', "<!--url(https://a.example/*);position:fixed;--a:/**/)"],
+    ['background-image', "a<!--url(https://a.example/'x);position:fixed;--a:')"],
+    ['color', 'calc(<!--url(a/*)); position: fixed; --a: */))'],
+    // Non-ASCII non-ident code points and lone surrogates before url(...)
+    ['background-image', 'a\u00a0url(a/*); position: fixed; --a: */)'],
+    ['background-image', '\u200burl(a/*); position: fixed; --a: */)'],
+    ['background-image', '\ud800url(a/*); position: fixed; --a: */)'],
+    // Inverse-direction url(...) differentials (#url, @url, \x00, lone surrogates, non-ASCII non-ident)
+    ['background-image', '#url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '@url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '##url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '@@url(a/*) "*/); position: fixed; --a: "'],
+    ['color', 'calc(#url(a/*) "*/); position: fixed; --a: ")'],
+    ['color', 'calc(@url(a/*) "*/); position: fixed; --a: ")'],
+    ['background-image', '\x00url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '\ud800url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '\udc00url(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', '\u200burl(a/*) "*/); position: fixed; --a: "'],
+    ['background-image', 'a\u00a0url(a/*) "*/); position: fixed; --a: "'],
+    // Unclosed hex-escape inputs (must reject linearly without backtracking)
+    ['content', '"' + '\\aaaaaa'.repeat(25)],
+    ['background-image', 'url(' + '\\aaaaaa'.repeat(25)],
+    // Escaped url( obfuscation
+    ['background-image', '\\75 rl(https://example.com/*); position: fixed; --a: /* */ )'],
+    ['background-image', '\\75\\72\\6c(https://example.com/*); position: fixed; --a: /* */ )'],
+    // Trailing / invalid backslashes
+    ['color', 'red\\'],
+    ['color', 'red\\\\\\'],
+    ['color', 'red\\\n; position: fixed'],
+    // !important inside value
+    ['color', 'red !important'],
+    ['color', 'red !IMPORTANT'],
+    ['color', 'red ! important'],
+    ['color', 'red !/*c*/important /* trailing */'],
+    ['color', 'red !\\69 mportant'],
+    // Invalid property names
+    ['color: red; position', 'fixed'],
+    ['color; position', 'fixed'],
+    ['', 'red'],
+    ['--', 'red'],
+    ['123', 'red'],
+    ['@import', 'red'],
+    ['a<b', 'red'],
+    ['\x00', 'red'],
+    ['--a.b', 'red'],
+    ['--a<b', 'red'],
+    ['--a,b', 'red'],
+    ['--a+b', 'red'],
+  ];
+
+  rejected.forEach(function(entry) {
+    (setStyle(entry[0], entry[1]) === null).should.equal(true);
+  });
+
+  // Accept legitimate single-property CSS values (including semicolons inside strings/urls/parens/comments)
+  var largeDataUri = 'url(data:image/png;base64,' + 'A'.repeat(100000) + ')';
+  var accepted = [
+    ['color', 'red', 'color: red;'],
+    ['width', '100px', 'width: 100px;'],
+    ['width', 'calc(100% - 20px)', 'width: calc(100% - 20px);'],
+    ['width', 'calc(100% / 2)', 'width: calc(100% / 2);'],
+    ['color', 'rgb(255 0 0 / 50%)', 'color: rgb(255 0 0 / 50%);'],
+    ['aspect-ratio', '16 / 9', 'aspect-ratio: 16 / 9;'],
+    ['font', '14px/1.5 sans-serif', 'font: 14px/1.5 sans-serif;'],
+    ['color', 'var(--my-color, rgba(0, 0, 0, 0.5))', 'color: var(--my-color, rgba(0, 0, 0, 0.5));'],
+    ['background-image', 'url(data:image/png;base64,iVBORw0KGgo=)', 'background-image: url(data:image/png;base64,iVBORw0KGgo=);'],
+    ['background-image', 'URL(data:image/png;base64,iVBORw0KGgo=)', 'background-image: URL(data:image/png;base64,iVBORw0KGgo=);'],
+    ['background-image', 'url(  data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C/svg%3E  )', 'background-image: url(  data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C/svg%3E  );'],
+    ['background-image', 'url("data:image/png;base64,iVBORw0KGgo=")', 'background-image: url("data:image/png;base64,iVBORw0KGgo=");'],
+    ['background-image', "url('data:image/png;base64,iVBORw0KGgo=')", "background-image: url('data:image/png;base64,iVBORw0KGgo=');"],
+    ['background-image', 'url("https://example.com/a;b=1")', 'background-image: url("https://example.com/a;b=1");'],
+    ['background-image', 'url("foo\\"bar;baz")', 'background-image: url("foo\\"bar;baz");'],
+    ['background-image', 'url("foo\\\\")', 'background-image: url("foo\\\\");'],
+    ['background-image', 'url(a\\20 b.png)', 'background-image: url(a\\20 b.png);'],
+    ['background-image', 'url()', 'background-image: url();'],
+    ['background-image', largeDataUri, 'background-image: ' + largeDataUri + ';'],
+    ['background-image', 'linear-gradient(to right, red, blue), url(data:image/png;base64,AAA)', 'background-image: linear-gradient(to right, red, blue), url(data:image/png;base64,AAA);'],
+    ['content', '"a; b"', 'content: "a; b";'],
+    ['content', '"a\\61\nb"', 'content: "a\\61\nb";'],
+    ['content', "'hello; world'", "content: 'hello; world';"],
+    ['content', '"foo !important"', 'content: "foo !important";'],
+    ['font-family', '"Helvetica Neue", Arial, sans-serif', 'font-family: "Helvetica Neue", Arial, sans-serif;'],
+    ['grid-template-columns', '[main-start] 1fr [main-end]', 'grid-template-columns: [main-start] 1fr [main-end];'],
+    ['color', 'red /* comment ; with semicolon */', 'color: red /* comment ; with semicolon */;'],
+    ['--custom', '"a; b"', '--custom: "a; b";'],
+    ['--custom', '(a; b)', '--custom: (a; b);'],
+    ['--caf\u00e9', 'red', '--caf\u00e9: red;'],
+    ['font-family', 'Foo\\;Bar', 'font-family: Foo\\;Bar;'],
+  ];
+
+  accepted.forEach(function(entry) {
+    setStyle(entry[0], entry[1]).should.equal(entry[2]);
+  });
+
+  // Explicit priority argument and setPropertyPriority still work
+  setStyle('color', 'red', 'important').should.equal('color: red !important;');
+  var prioDoc = domino.createDocument('<div style="color: red;"></div>');
+  var prioEl = prioDoc.querySelector('div');
+  prioEl.style.setPropertyPriority('color', 'important');
+  prioEl.getAttribute('style').should.equal('color: red !important;');
+  prioEl.style.setPropertyPriority('color', '');
+  prioEl.getAttribute('style').should.equal('color: red;');
+  // Rejected setProperty does not overwrite an existing valid style attribute
+  prioEl.style.setProperty('color', 'blue; position: fixed');
+  prioEl.getAttribute('style').should.equal('color: red;');
+
+  // Object.prototype property names do not collide or pollute
+  setStyle('constructor', 'red').should.equal('constructor: red;');
+  setStyle('__proto__', 'red').should.equal('__proto__: red;');
+  var protoDoc = domino.createDocument('<div></div>');
+  var protoEl = protoDoc.querySelector('div');
+  protoEl.style.getPropertyValue('constructor').should.equal('');
+  protoEl.style.getPropertyPriority('constructor').should.equal('');
+  protoEl.style.removeProperty('constructor');
+  (protoEl.getAttribute('style') === null).should.equal(true);
+  protoEl.style.setPropertyPriority('constructor', 'important');
+  (protoEl.getAttribute('style') === null).should.equal(true);
+
+  // Reparse round trips must not split single properties into multiple declarations
+  var roundTripCases = [
+    ['color', 'red /* ; position: fixed; --a: */'],
+    ['font-family', 'Foo\\; position: fixed'],
+    ['content', '"foo\\" ; position: fixed"'],
+    ['background-image', 'url(https://example.com/a\\)b;position:fixed)'],
+    ['--x', 'calc(")" ; position: fixed; --a: 1)'],
+    ['--x', '[a; position: fixed]'],
+    ['--x', '{a; position: fixed}'],
+    ['background-image', 'a\u00e9url(a/* ); position: fixed; --a: */)'],
+    ['background-image', 'a\ud83d\ude00url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '\\<!--url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '#url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '@url(a/* ); position: fixed; --a: */)'],
+    ['background-image', '#\\61 url(a/* ); position: fixed; --a: */)'],
+    ['--x', 'foo\\!important'],
+  ];
+  roundTripCases.forEach(function(entry) {
+    var d1 = domino.createDocument('<div></div>');
+    var e1 = d1.querySelector('div');
+    e1.style.setProperty(entry[0], entry[1]);
+    var d2 = domino.createDocument(e1.outerHTML);
+    var e2 = d2.querySelector('div');
+    e2.style.getPropertyValue(entry[0]).should.equal(entry[1]);
+    e2.style.getPropertyPriority(entry[0]).should.equal('');
+    e2.style.getPropertyValue('position').should.equal('');
+    e2.style.removeProperty(entry[0]);
+    e2.getAttribute('style').should.equal('');
+  });
+
+  // Reparse round trips for multiple properties with quotes/backslashes/unquoted url `/*`
+  var multiDoc1 = domino.createDocument('<div></div>');
+  var multiEl1 = multiDoc1.querySelector('div');
+  multiEl1.style.setProperty('content', '"("');
+  multiEl1.style.setProperty('font-family', '"foo\\\\"');
+  multiEl1.style.setProperty('background-image', 'url(https://example.com/*)');
+  multiEl1.style.setProperty('color', 'blue');
+  var multiDoc2 = domino.createDocument(multiEl1.outerHTML);
+  var multiEl2 = multiDoc2.querySelector('div');
+  multiEl2.style.getPropertyValue('content').should.equal('"("');
+  multiEl2.style.getPropertyValue('font-family').should.equal('"foo\\\\"');
+  multiEl2.style.getPropertyValue('background-image').should.equal('url(https://example.com/*)');
+  multiEl2.style.getPropertyValue('color').should.equal('blue');
+
+  // Proxy property assignment enforces the same validation
+  var doc = domino.createDocument('<a id="badge">hi</a>');
+  var a = doc.getElementById('badge');
+  a.style.color = "red; position: fixed; inset: 0px; z-index: 2147483647; background-image: url('https://attacker.example/phish.png?data:')";
+  (a.getAttribute('style') === null).should.equal(true);
+  a.style.backgroundImage = 'url(data:image/png;base64,iVBORw0KGgo=)';
+  a.getAttribute('style').should.equal('background-image: url(data:image/png;base64,iVBORw0KGgo=);');
+};
