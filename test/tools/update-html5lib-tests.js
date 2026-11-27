@@ -214,7 +214,7 @@ var serialize_doc = function(filename, fragment, doc) {
 
       var commentEnd = findCommentEnd(s, commentStart + 4);
       if (commentEnd === -1) {
-        result += escapeMatchingClosingTag(s.slice(commentStart), parentTag);
+        result += escape(s.slice(commentStart));
         break;
       }
 
