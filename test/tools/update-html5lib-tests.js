@@ -309,7 +309,12 @@ var serialize_doc = function(filename, fragment, doc) {
       if (text !== escape(text) && !obj.no_escape) {
         obj.escaped = props.escaped = true;
       }
-      result += obj.no_escape
+      // Inside <svg> and <math> a parser may read raw text as foreign
+      // content, so domino escapes it there.
+      var inForeignContent = stack.some(function(e) {
+        return e.tag === 'svg' || e.tag === 'math';
+      });
+      result += obj.no_escape && !inForeignContent
         ? (NO_ESCAPE_FALLBACK[stack_top().tag] ? escapeFallbackRawText(text, stack_top().tag) : text)
         : escape(text);
       stack_top().children.push(obj);

@@ -80593,8 +80593,8 @@
             ]
           }
         ],
-        "html": "<html><head></head><body><svg><foreignObject><div>foo</div><plaintext></foreignObject></svg><div>bar</div></plaintext></foreignObject></svg></body></html>",
-        "noQuirksBodyHtml": "<svg><foreignObject><div>foo</div><plaintext></foreignObject></svg><div>bar</div></plaintext></foreignObject></svg>"
+        "html": "<html><head></head><body><svg><foreignObject><div>foo</div><plaintext>&lt;/foreignObject&gt;&lt;/svg&gt;&lt;div&gt;bar&lt;/div&gt;</plaintext></foreignObject></svg></body></html>",
+        "noQuirksBodyHtml": "<svg><foreignObject><div>foo</div><plaintext>&lt;/foreignObject&gt;&lt;/svg&gt;&lt;div&gt;bar&lt;/div&gt;</plaintext></foreignObject></svg>"
       }
     },
     {
